@@ -362,6 +362,170 @@ def get_layouts():
     return layouts
 
 
+# === M58 · API Gateway / Provider Layer (15 providers) ===
+providers = [
+    {"id": "litellm", "name": "LiteLLM", "status": "active", "priority": 10, "endpoint": "http://localhost:4000", "api_key_env": "LITELLM_API_KEY", "models": ["*"], "fallback": "openrouter", "rate_limit": 1000, "cache": True, "load_balance": True, "category": "ai_gateway"},
+    {"id": "openrouter", "name": "OpenRouter", "status": "active", "priority": 9, "endpoint": "https://openrouter.ai/api/v1", "api_key_env": "OPENROUTER_API_KEY", "models": ["*"], "fallback": "litellm", "rate_limit": 500, "cache": True, "load_balance": False, "category": "ai_gateway"},
+    {"id": "vercel_gateway", "name": "Vercel AI Gateway", "status": "inactive", "priority": 8, "endpoint": "https://ai-gateway.vercel.sh/v1", "api_key_env": "VERCEL_AI_KEY", "models": ["*"], "fallback": "openrouter", "rate_limit": 500, "cache": True, "load_balance": False, "category": "ai_gateway"},
+    {"id": "aws_bedrock", "name": "AWS Bedrock", "status": "inactive", "priority": 7, "endpoint": "https://bedrock-runtime.us-east-1.amazonaws.com", "api_key_env": "AWS_BEDROCK_KEY", "models": ["claude", "llama", "titan"], "fallback": "litellm", "rate_limit": 100, "cache": False, "load_balance": True, "region": "us-east-1", "sts": True, "iam": True, "category": "cloud_ai"},
+    {"id": "google_vertex", "name": "Google Vertex AI", "status": "inactive", "priority": 7, "endpoint": "https://us-central1-aiplatform.googleapis.com", "api_key_env": "GOOGLE_VERTEX_KEY", "models": ["gemini", "palm"], "fallback": "openrouter", "rate_limit": 200, "cache": False, "load_balance": False, "category": "cloud_ai"},
+    {"id": "azure_ai", "name": "Azure AI Foundry", "status": "inactive", "priority": 7, "endpoint": "https://{resource}.openai.azure.com", "api_key_env": "AZURE_AI_KEY", "models": ["gpt-4", "gpt-3.5"], "fallback": "openrouter", "rate_limit": 200, "cache": False, "load_balance": False, "category": "cloud_ai"},
+    {"id": "ollama", "name": "Ollama", "status": "inactive", "priority": 6, "endpoint": "http://localhost:11434", "api_key_env": "", "models": ["llama", "mistral", "qwen"], "fallback": "litellm", "rate_limit": 50, "cache": True, "load_balance": False, "category": "local"},
+    {"id": "vllm", "name": "vLLM", "status": "inactive", "priority": 6, "endpoint": "http://localhost:8001/v1", "api_key_env": "", "models": ["*"], "fallback": "litellm", "rate_limit": 100, "cache": True, "load_balance": True, "category": "local"},
+    {"id": "llama_cpp", "name": "llama.cpp Server", "status": "inactive", "priority": 5, "endpoint": "http://localhost:8080", "api_key_env": "", "models": ["llama"], "fallback": "vllm", "rate_limit": 30, "cache": True, "load_balance": False, "category": "local"},
+    {"id": "openai_compatible", "name": "OpenAI Compatible API", "status": "active", "priority": 5, "endpoint": "https://integrate.api.nvidia.com/v1", "api_key_env": "NVIDIA_NIM_API_KEY", "models": ["*"], "fallback": "litellm", "rate_limit": 1000, "cache": True, "load_balance": False, "category": "openai_compat"},
+    {"id": "anthropic_direct", "name": "Anthropic Direct", "status": "inactive", "priority": 4, "endpoint": "https://api.anthropic.com", "api_key_env": "ANTHROPIC_API_KEY", "models": ["claude"], "fallback": "openrouter", "rate_limit": 100, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "hf_inference", "name": "Hugging Face Inference", "status": "inactive", "priority": 4, "endpoint": "https://api-inference.huggingface.co", "api_key_env": "HF_TOKEN", "models": ["*"], "fallback": "litellm", "rate_limit": 50, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "groq", "name": "Groq", "status": "inactive", "priority": 3, "endpoint": "https://api.groq.com/openai/v1", "api_key_env": "GROQ_API_KEY", "models": ["llama", "mixtral"], "fallback": "litellm", "rate_limit": 100, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "together_ai", "name": "Together AI", "status": "inactive", "priority": 3, "endpoint": "https://api.together.xyz/v1", "api_key_env": "TOGETHER_API_KEY", "models": ["*"], "fallback": "litellm", "rate_limit": 100, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "fireworks_ai", "name": "Fireworks AI", "status": "inactive", "priority": 3, "endpoint": "https://api.fireworks.ai/inference/v1", "api_key_env": "FIREWORKS_API_KEY", "models": ["*"], "fallback": "litellm", "rate_limit": 100, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "sambanova", "name": "SambaNova", "status": "inactive", "priority": 2, "endpoint": "https://api.sambanova.ai/v1", "api_key_env": "SAMBANOVA_API_KEY", "models": ["llama"], "fallback": "litellm", "rate_limit": 50, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "cerebras", "name": "Cerebras", "status": "inactive", "priority": 2, "endpoint": "https://api.cerebras.ai/v1", "api_key_env": "CEREBRAS_API_KEY", "models": ["llama"], "fallback": "litellm", "rate_limit": 50, "cache": False, "load_balance": False, "category": "commercial"},
+    {"id": "personalizado", "name": "Personalizado", "status": "inactive", "priority": 1, "endpoint": "", "api_key_env": "", "models": ["*"], "fallback": "", "rate_limit": 0, "cache": False, "load_balance": False, "category": "custom"}
+]
+
+@app.get("/api/providers")
+def get_providers():
+    return providers
+
+@app.get("/api/providers/{pid}")
+def get_provider(pid: str):
+    for p in providers:
+        if p["id"] == pid:
+            return p
+    raise HTTPException(404, "Provider not found")
+
+@app.post("/api/providers/{pid}/toggle")
+def toggle_provider(pid: str):
+    for p in providers:
+        if p["id"] == pid:
+            p["status"] = "inactive" if p["status"] == "active" else "active"
+            return p
+    raise HTTPException(404)
+
+@app.post("/api/providers/{pid}/test")
+async def test_provider(pid: str):
+    for p in providers:
+        if p["id"] == pid:
+            # Simulación: marcar como OK si tiene endpoint
+            return {"provider": pid, "status": "OK" if p["endpoint"] else "NO_ENDPOINT", "latency_ms": 42}
+    raise HTTPException(404)
+
+
+# === M59 · Model Registry ===
+model_registry = [
+    {"id": "claude-sonnet-4", "name": "Claude Sonnet 4", "provider": "anthropic_direct", "context": 200000, "cost_per_1k": 0.003, "speed": "fast", "capabilities": ["vision", "code", "tools"]},
+    {"id": "gpt-5", "name": "GPT-5", "provider": "openai_compatible", "context": 128000, "cost_per_1k": 0.005, "speed": "fast", "capabilities": ["vision", "code", "tools", "audio"]},
+    {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro", "provider": "google_vertex", "context": 2000000, "cost_per_1k": 0.001, "speed": "medium", "capabilities": ["vision", "audio", "video"]},
+    {"id": "minimax-m3", "name": "MiniMax M3", "provider": "openai_compatible", "context": 128000, "cost_per_1k": 0.001, "speed": "fast", "capabilities": ["code", "tools"]},
+    {"id": "minimax-m2.7", "name": "MiniMax M2.7", "provider": "openai_compatible", "context": 128000, "cost_per_1k": 0.0005, "speed": "fast", "capabilities": ["code", "tools"]},
+    {"id": "qwen-2.5-72b", "name": "Qwen 2.5 72B", "provider": "ollama", "context": 32000, "cost_per_1k": 0.0, "speed": "medium", "capabilities": ["code", "tools"]},
+    {"id": "deepseek-v3", "name": "DeepSeek V3", "provider": "fireworks_ai", "context": 64000, "cost_per_1k": 0.0007, "speed": "fast", "capabilities": ["code", "tools"]},
+    {"id": "llama-3.1-70b", "name": "Llama 3.1 70B", "provider": "groq", "context": 128000, "cost_per_1k": 0.0005, "speed": "very_fast", "capabilities": ["code", "tools"]},
+    {"id": "mistral-large", "name": "Mistral Large", "provider": "openrouter", "context": 128000, "cost_per_1k": 0.004, "speed": "fast", "capabilities": ["code", "tools", "vision"]},
+    {"id": "gpt-oss-120b", "name": "GPT-OSS-120B", "provider": "openai_compatible", "context": 128000, "cost_per_1k": 0.0003, "speed": "fast", "capabilities": ["code", "tools"]}
+]
+
+@app.get("/api/models/registry")
+def get_model_registry():
+    return model_registry
+
+@app.get("/api/models/registry/{mid}")
+def get_model(mid: str):
+    for m in model_registry:
+        if m["id"] == mid:
+            return m
+    raise HTTPException(404)
+
+
+# === M60 · Connection Catalog + Marketplace ===
+catalog = {
+    "ai_providers": [
+        {"name": "LiteLLM", "icon": "litellm", "installed": True, "category": "ai_gateway"},
+        {"name": "OpenRouter", "icon": "openrouter", "installed": False, "category": "ai_gateway"},
+        {"name": "Vercel AI Gateway", "icon": "vercel", "installed": False, "category": "ai_gateway"},
+        {"name": "AWS Bedrock", "icon": "aws", "installed": False, "category": "cloud_ai"},
+        {"name": "Google Vertex AI", "icon": "google", "installed": False, "category": "cloud_ai"},
+        {"name": "Azure AI Foundry", "icon": "azure", "installed": False, "category": "cloud_ai"},
+        {"name": "Ollama", "icon": "ollama", "installed": False, "category": "local"},
+        {"name": "vLLM", "icon": "vllm", "installed": False, "category": "local"},
+        {"name": "llama.cpp Server", "icon": "llama_cpp", "installed": False, "category": "local"},
+        {"name": "OpenAI Compatible", "icon": "openai", "installed": True, "category": "openai_compat"},
+    ],
+    "cloud": [
+        {"name": "AWS", "icon": "aws", "installed": False},
+        {"name": "Google Cloud", "icon": "gcp", "installed": False},
+        {"name": "Azure", "icon": "azure", "installed": False},
+        {"name": "Cloudflare", "icon": "cloudflare", "installed": True},
+    ],
+    "databases": [
+        {"name": "PostgreSQL", "icon": "postgres", "installed": False},
+        {"name": "Redis", "icon": "redis", "installed": False},
+        {"name": "Qdrant", "icon": "qdrant", "installed": False},
+        {"name": "MongoDB", "icon": "mongo", "installed": False},
+    ],
+    "messaging": [
+        {"name": "Telegram", "icon": "telegram", "installed": False},
+        {"name": "Discord", "icon": "discord", "installed": False},
+        {"name": "Slack", "icon": "slack", "installed": False},
+    ],
+    "repos": [
+        {"name": "GitHub", "icon": "github", "installed": True},
+        {"name": "GitLab", "icon": "gitlab", "installed": False},
+        {"name": "Bitbucket", "icon": "bitbucket", "installed": False},
+    ],
+    "storage": [
+        {"name": "S3", "icon": "s3", "installed": False},
+        {"name": "Cloudflare R2", "icon": "r2", "installed": False},
+        {"name": "Supabase Storage", "icon": "supabase", "installed": False},
+    ],
+    "email": [
+        {"name": "Gmail", "icon": "gmail", "installed": False},
+        {"name": "Outlook", "icon": "outlook", "installed": False},
+    ],
+    "infra": [
+        {"name": "SSH", "icon": "ssh", "installed": True},
+        {"name": "Docker", "icon": "docker", "installed": True},
+        {"name": "Kubernetes", "icon": "k8s", "installed": False},
+        {"name": "MCP", "icon": "mcp", "installed": True},
+    ],
+    "webhooks": [
+        {"name": "Generic Webhook", "icon": "webhook", "installed": True},
+        {"name": "n8n", "icon": "n8n", "installed": False},
+        {"name": "Zapier", "icon": "zapier", "installed": False},
+    ]
+}
+
+marketplace_installs = {}
+
+@app.get("/api/catalog")
+def get_catalog():
+    return catalog
+
+@app.get("/api/marketplace/installed")
+def get_installed():
+    return marketplace_installs
+
+@app.post("/api/marketplace/install/{name}")
+def install_connector(name: str):
+    marketplace_installs[name] = {"installed_at": "2026-07-11T17:00:00Z", "version": "1.0.0"}
+    # Marcar en catalog
+    for cat in catalog.values():
+        for c in cat:
+            if c["name"] == name:
+                c["installed"] = True
+    return marketplace_installs[name]
+
+@app.post("/api/marketplace/uninstall/{name}")
+def uninstall_connector(name: str):
+    marketplace_installs.pop(name, None)
+    for cat in catalog.values():
+        for c in cat:
+            if c["name"] == name:
+                c["installed"] = False
+    return {"ok": True}
+
+
 # === WebSocket ===
 @app.websocket("/ws/router")
 async def ws_router(ws: WebSocket):
