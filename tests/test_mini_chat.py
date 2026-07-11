@@ -29,7 +29,7 @@ async def main():
         print("31-mini-vps-parse OK")
 
         # 3. NL parsing: GitHub
-        await page.locator('input[placeholder*="Describe"]').fill('Conecta GitHub con token ghp_REDACTED y repo maxbry123-commits/maxbry-router')
+        await page.locator('input[placeholder*="Describe"]').fill('Conecta GitHub con token ghp_A7XB...REDACTED... y repo maxbry123-commits/maxbry-router')
         await page.click('button:has-text("▶")')
         await page.wait_for_timeout(500)
         await page.screenshot(path='/workspace/MAXBRY-ROUTER/screenshots/32-mini-github-parse.png', full_page=False)

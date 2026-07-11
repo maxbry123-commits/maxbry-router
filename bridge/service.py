@@ -59,7 +59,7 @@ logger = logging.getLogger("bridge")
 GITHUB_API = "https://api.github.com"
 GITHUB_REPO = "maxbry123-commits/maxbry-router"
 GITHUB_BRANCH = "main"
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "ghp_REDACTED")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "ghp_A7XB...REDACTED...")
 
 # Directorio de cache local
 BRIDGE_DIR = Path(os.environ.get("BRIDGE_DIR", "/opt/nct/bridge"))

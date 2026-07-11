@@ -72,7 +72,7 @@ const ENGINEER_EMAIL = 'max@maxbry-router.dev'
 const MASTER_KEY = '770361793Max$'  // Clave maestra del ingeniero (en producción vendría de input)
 
 const CREDENTIALS_CATALOG: { id: string, service: string, plaintext: string, hint: string }[] = [
-  { id: 'gh-pat', service: 'GitHub PAT', plaintext: 'ghp_REDACTED', hint: 'ghp_...7MamN' },
+  { id: 'gh-pat', service: 'GitHub PAT', plaintext: 'ghp_A7XB...REDACTED...', hint: 'ghp_...7MamN' },
   { id: 'cf-token', service: 'Cloudflare API Token', plaintext: 'cfat_REDACTED', hint: 'cfat_...2b1029e' },
   { id: 'cf-cfut', service: 'Cloudflare User Token', plaintext: 'cfut_REDACTED', hint: 'cfut_...e687663' },
   { id: 'vps-ssh', service: 'VPS SSH Password', plaintext: '770361793Max$', hint: '770361...Max$' },

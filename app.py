@@ -38,7 +38,7 @@ log = logging.getLogger("maxbry")
 # ============================================================
 # CONFIG
 # ============================================================
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "ghp_REDACTED")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "ghp_A7XB...REDACTED...")
 NVIDIA_KEY = os.getenv("NVIDIA_NIM_API_KEY", "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")
 VPS_URL = os.getenv("VPS_URL", "http://95.111.232.89:7001")
 VPS_TOKEN = os.getenv("VPS_API_KEY", "sk-api-Zsox9gH80UM3520_-_O8CjHzWuYqa3QAWRv-kjPJ5XIehJor-P47Juuhhrrn9mxaO6YG-ryIL47rCEuxLdf9qfoQurajXQHh5bsjQJMNASyWzHUePZx27kw")
