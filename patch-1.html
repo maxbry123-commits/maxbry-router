@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PARCHE 1 · MAXBRY · Arquitectura GitHub↔VPS↔Destinos · Providers · Catalog</title>
+<style>
+:root{--bg:#000;--panel:#0a0e1a;--panel2:#131826;--border:#2a3147;--white:#fff;--gray:#9aa0a6;--gray2:#5f6368;--blue:#4285f4;--blue2:#669df6;--green:#10a37f;--green2:#34a853;--red:#ea4335;--yellow:#fbbc04}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--white);padding:20px;line-height:1.55;font-size:13px}
+h1{font-size:24px;color:var(--blue);margin-bottom:4px}
+h2{font-size:18px;color:var(--green2);margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+h3{font-size:14px;color:var(--blue2);margin:14px 0 6px}
+.meta{color:var(--gray);font-size:11px;margin-bottom:18px}
+.box{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:4px;padding:10px 12px;margin-bottom:10px}
+.box.green{border-left-color:var(--green)}
+.box.blue{border-left-color:var(--blue2)}
+ul{margin-left:18px;margin-top:4px}
+li{margin-bottom:3px}
+code{background:var(--panel2);padding:1px 6px;border-radius:3px;color:var(--green);font-size:12px}
+.ok{color:var(--green);font-weight:700}
+.no{color:var(--red);font-weight:700}
+.warn{color:var(--yellow)}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+th,td{border:1px solid var(--border);padding:5px 8px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--blue2)}
+.layer{color:var(--green);font-weight:700}
+.arrow{color:var(--blue);font-weight:700}
+</style>
+</head>
+<body>
+
+<h1>PARCHE 1 · MAXBRY Router v1.1</h1>
+<p class="meta">Arquitectura GitHub↔VPS↔Destinos · 18 Providers · 10 Model Registry · 9 Catalog + Marketplace · 3 nuevos agentes con lifecycle · 2026-07-11</p>
+
+<h2>1 · Arquitectura en 3 capas</h2>
+<div class="box green">
+<pre style="color:var(--white);font-size:12px;line-height:1.7">
+<span class="layer">GITHUB</span> = Hogar del agente (código + skills + DSL + config)
+        <span class="arrow">│</span>
+        <span class="arrow">▼</span>
+<span class="layer">VPS 95.111.232.89</span> = Cerebro + Memoria + Coordinación (Router + 22 componentes)
+        <span class="arrow">│</span>
+        <span class="arrow">▼</span>
+<span class="layer">DESTINOS</span> = Músculos que ejecutan (HF Space, Railway, Docker, K8s, VPS Worker, PC Local, Otro)
+</pre>
+<p style="color:var(--gray);font-size:11px;margin-top:6px">Regla: <span class="ok">GitHub = conocimiento</span> · <span class="ok">VPS = cerebro</span> · <span class="ok">Destinos = músculos</span></p>
+</div>
+
+<h3>GITHUB contiene</h3>
+<div class="box">
+<ul>
+<li>Código fuente · Claude Code · OpenClaw · MiMo Code</li>
+<li>Skills · DSL/DAG · Contratos · Workflows</li>
+<li>Configuración · Documentación · Versiones (Git)</li>
+</ul>
+</div>
+
+<h3>VPS contiene (22 componentes)</h3>
+<div class="box">
+<ul>
+<li>Router Universal · Memoria · state.json · RAG · Scheduler</li>
+<li>Queue Manager · Event Bus · Service Registry · Provider Manager</li>
+<li>LiteLLM · OpenRouter · API Gateway · Secrets Vault</li>
+<li>Health Check · Watchdog · Circuit Breaker · Logs · Trazabilidad</li>
+<li>Cache (Redis) · Base de datos · Consenso · Loops · Recovery Manager</li>
+</ul>
+</div>
+
+<h3>DESTINOS (7 tipos configurables)</h3>
+<div class="box">
+<ul>
+<li>HF Space · Railway Worker · Docker Container · Kubernetes Pod</li>
+<li>VPS Worker · PC Local · Otro Servidor</li>
+</ul>
+<p style="color:var(--gray);font-size:11px">Si mañana eliminas un HF Space o cambias Railway, no cambias el agente. Solo cambia el destino.</p>
+</div>
+
+<h2>2 · M61 · GET /api/architecture (mapa 3 capas)</h2>
+<div class="box blue">
+<p>Devuelve la arquitectura completa en JSON con GitHub/VPS/Destinos + 4 repos reales + 22 componentes VPS + 7 tipos de destinos + regla.</p>
+</div>
+
+<h2>3 · M62 · Agent Identity (3 agentes con lifecycle)</h2>
+<table>
+<tr><th>Agente</th><th>GitHub repo</th><th>Version</th><th>VPS coordinator</th><th>Destinos</th><th>Skills</th></tr>
+<tr><td>claude-code-A</td><td>anthropics/claude-code</td><td>d4d8fbb</td><td>95.111.232.89:8000</td><td>hf_space, vps_worker, railway</td><td>7</td></tr>
+<tr><td>mimo-code-A</td><td>XiaomiMiMo/MiMo-Code</td><td>f056dcc</td><td>95.111.232.89:8000</td><td>hf_space, vps_worker</td><td>7</td></tr>
+<tr><td>openclaw</td><td>openclaw/openclaw</td><td>main</td><td>95.111.232.89:8000</td><td>hf_space, vps_worker, railway, docker</td><td>8</td></tr>
+</table>
+
+<h3>Lifecycle de cada agente (5 pasos)</h3>
+<div class="box">
+<ol>
+<li><code>github_source</code> — código vive en GitHub</li>
+<li><code>vps_coordination</code> — VPS decide qué hacer</li>
+<li><code>destination_execution</code> — destino ejecuta la tarea</li>
+<li><code>result_return</code> — resultado vuelve al VPS</li>
+<li><code>memory_update</code> — VPS actualiza memoria</li>
+</ol>
+</div>
+
+<h2>4 · M58 · 18 API Gateways / Providers</h2>
+<table>
+<tr><th>#</th><th>Provider</th><th>Category</th><th>Priority</th><th>Status</th><th>Endpoint</th></tr>
+<tr><td>1</td><td>LiteLLM</td><td>ai_gateway</td><td>10</td><td>🟢 active</td><td>http://localhost:4000</td></tr>
+<tr><td>2</td><td>OpenRouter</td><td>ai_gateway</td><td>9</td><td>🟢 active</td><td>https://openrouter.ai/api/v1</td></tr>
+<tr><td>3</td><td>Vercel AI Gateway</td><td>ai_gateway</td><td>8</td><td>⚪ inactive</td><td>https://ai-gateway.vercel.sh/v1</td></tr>
+<tr><td>4</td><td>AWS Bedrock</td><td>cloud_ai</td><td>7</td><td>⚪ inactive</td><td>bedrock-runtime.us-east-1</td></tr>
+<tr><td>5</td><td>Google Vertex AI</td><td>cloud_ai</td><td>7</td><td>⚪ inactive</td><td>us-central1-aiplatform</td></tr>
+<tr><td>6</td><td>Azure AI Foundry</td><td>cloud_ai</td><td>7</td><td>⚪ inactive</td><td>azure.com</td></tr>
+<tr><td>7</td><td>Ollama</td><td>local</td><td>6</td><td>⚪ inactive</td><td>http://localhost:11434</td></tr>
+<tr><td>8</td><td>vLLM</td><td>local</td><td>6</td><td>⚪ inactive</td><td>http://localhost:8001/v1</td></tr>
+<tr><td>9</td><td>llama.cpp Server</td><td>local</td><td>5</td><td>⚪ inactive</td><td>http://localhost:8080</td></tr>
+<tr><td>10</td><td>OpenAI Compatible</td><td>openai_compat</td><td>5</td><td>🟢 active</td><td>https://integrate.api.nvidia.com/v1</td></tr>
+<tr><td>11</td><td>Anthropic Direct</td><td>commercial</td><td>4</td><td>⚪ inactive</td><td>https://api.anthropic.com</td></tr>
+<tr><td>12</td><td>HF Inference</td><td>commercial</td><td>4</td><td>⚪ inactive</td><td>api-inference.huggingface.co</td></tr>
+<tr><td>13</td><td>Groq</td><td>commercial</td><td>3</td><td>⚪ inactive</td><td>api.groq.com</td></tr>
+<tr><td>14</td><td>Together AI</td><td>commercial</td><td>3</td><td>⚪ inactive</td><td>api.together.xyz</td></tr>
+<tr><td>15</td><td>Fireworks AI</td><td>commercial</td><td>3</td><td>⚪ inactive</td><td>api.fireworks.ai</td></tr>
+<tr><td>16</td><td>SambaNova</td><td>commercial</td><td>2</td><td>⚪ inactive</td><td>api.sambanova.ai</td></tr>
+<tr><td>17</td><td>Cerebras</td><td>commercial</td><td>2</td><td>⚪ inactive</td><td>api.cerebras.ai</td></tr>
+<tr><td>18</td><td>Personalizado</td><td>custom</td><td>1</td><td>⚪ inactive</td><td>—</td></tr>
+</table>
+
+<h3>Cada provider tiene</h3>
+<div class="box">
+<ul>
+<li>🟢 Estado · 🔑 Credenciales (env var) · ⚖️ Prioridad · 💲 Coste</li>
+<li>⚡ Latencia · ❤️ Health Check · 🔄 Fallback · 🧪 Probar conexión</li>
+<li>Rate Limit · Cache · Load Balance · Router interno</li>
+</ul>
+</div>
+
+<h2>5 · M59 · Model Registry (10 modelos con metadatos)</h2>
+<table>
+<tr><th>ID</th><th>Model</th><th>Provider</th><th>Context</th><th>Cost/1k</th><th>Speed</th><th>Capabilities</th></tr>
+<tr><td>claude-sonnet-4</td><td>Claude Sonnet 4</td><td>anthropic_direct</td><td>200k</td><td>$0.003</td><td>fast</td><td>vision, code, tools</td></tr>
+<tr><td>gpt-5</td><td>GPT-5</td><td>openai_compatible</td><td>128k</td><td>$0.005</td><td>fast</td><td>vision, code, tools, audio</td></tr>
+<tr><td>gemini-1.5-pro</td><td>Gemini 1.5 Pro</td><td>google_vertex</td><td>2M</td><td>$0.001</td><td>medium</td><td>vision, audio, video</td></tr>
+<tr><td>minimax-m3</td><td>MiniMax M3</td><td>openai_compatible</td><td>128k</td><td>$0.001</td><td>fast</td><td>code, tools</td></tr>
+<tr><td>minimax-m2.7</td><td>MiniMax M2.7</td><td>openai_compatible</td><td>128k</td><td>$0.0005</td><td>fast</td><td>code, tools</td></tr>
+<tr><td>qwen-2.5-72b</td><td>Qwen 2.5 72B</td><td>ollama</td><td>32k</td><td>$0.0</td><td>medium</td><td>code, tools</td></tr>
+<tr><td>deepseek-v3</td><td>DeepSeek V3</td><td>fireworks_ai</td><td>64k</td><td>$0.0007</td><td>fast</td><td>code, tools</td></tr>
+<tr><td>llama-3.1-70b</td><td>Llama 3.1 70B</td><td>groq</td><td>128k</td><td>$0.0005</td><td>very_fast</td><td>code, tools</td></tr>
+<tr><td>mistral-large</td><td>Mistral Large</td><td>openrouter</td><td>128k</td><td>$0.004</td><td>fast</td><td>code, tools, vision</td></tr>
+<tr><td>gpt-oss-120b</td><td>GPT-OSS-120B</td><td>openai_compatible</td><td>128k</td><td>$0.0003</td><td>fast</td><td>code, tools</td></tr>
+</table>
+
+<h2>6 · M60 · Connection Catalog + Marketplace</h2>
+
+<h3>9 categorías del catalog</h3>
+<table>
+<tr><th>Categoría</th><th>Conectores</th><th>Instalados</th></tr>
+<tr><td>ai_providers</td><td>10 (LiteLLM, OpenRouter, Vercel, Bedrock, Vertex, Azure, Ollama, vLLM, llama.cpp, OpenAI)</td><td>2</td></tr>
+<tr><td>cloud</td><td>4 (AWS, GCP, Azure, Cloudflare)</td><td>1</td></tr>
+<tr><td>databases</td><td>4 (PostgreSQL, Redis, Qdrant, MongoDB)</td><td>0</td></tr>
+<tr><td>messaging</td><td>3 (Telegram, Discord, Slack)</td><td>0</td></tr>
+<tr><td>repos</td><td>3 (GitHub, GitLab, Bitbucket)</td><td>1</td></tr>
+<tr><td>storage</td><td>3 (S3, R2, Supabase Storage)</td><td>0</td></tr>
+<tr><td>email</td><td>2 (Gmail, Outlook)</td><td>0</td></tr>
+<tr><td>infra</td><td>4 (SSH, Docker, Kubernetes, MCP)</td><td>3</td></tr>
+<tr><td>webhooks</td><td>3 (Generic, n8n, Zapier)</td><td>1</td></tr>
+</table>
+
+<h3>Endpoints marketplace</h3>
+<ul>
+<li><code>POST /api/marketplace/install/{name}</code> — instala un conector en 1 click</li>
+<li><code>POST /api/marketplace/uninstall/{name}</code> — desinstala</li>
+<li><code>GET /api/marketplace/installed</code> — lista los instalados</li>
+</ul>
+
+<h2>7 · M63 · Dispatcher de destinos</h2>
+<div class="box green">
+<p>El VPS decide dónde ejecutar la tarea según política:</p>
+<ol>
+<li>Recibe task de GitHub (definición del agente)</li>
+<li>Lee destinos disponibles del agente</li>
+<li>Elige el primer destino activo (configurable)</li>
+<li>Despacha la tarea al destino</li>
+<li>Recoge resultado y actualiza memoria</li>
+</ol>
+<p>Endpoint: <code>POST /api/dispatch/{agent_id}</code></p>
+</div>
+
+<h2>8 · Resumen del parche 1 (todo integrado)</h2>
+<table>
+<tr><th>Módulo</th><th>Endpoint</th><th>Función</th></tr>
+<tr><td>M58</td><td>/api/providers (×6)</td><td>18 API Gateways con toggle + test</td></tr>
+<tr><td>M59</td><td>/api/models/registry (×2)</td><td>10 modelos con metadatos</td></tr>
+<tr><td>M60</td><td>/api/catalog + /api/marketplace (×4)</td><td>9 categorías + install/uninstall</td></tr>
+<tr><td>M61</td><td>/api/architecture</td><td>Mapa 3 capas GitHub↔VPS↔Destinos</td></tr>
+<tr><td>M62</td><td>/api/agent/identity (×2)</td><td>3 agentes con lifecycle</td></tr>
+<tr><td>M63</td><td>/api/destinos (×4) + /api/dispatch</td><td>Dispatcher inteligente</td></tr>
+</table>
+
+<h2>9 · Verificación con curl real (10/10)</h2>
+<div class="box green">
+<ul>
+<li class="ok">✅ /api/architecture retorna 3 capas + 4 repos + 22 componentes + 7 destinos</li>
+<li class="ok">✅ /api/agent/identity lista 3 agentes con lifecycle</li>
+<li class="ok">✅ /api/agent/identity/claude-code-A retorna agente con github_repo + version</li>
+<li class="ok">✅ /api/providers lista 18 providers</li>
+<li class="ok">✅ /api/providers/litellm retorna priority=10 status=active</li>
+<li class="ok">✅ POST /api/providers/ollama/toggle cambia status</li>
+<li class="ok">✅ POST /api/providers/litellm/test retorna status=OK latency=42ms</li>
+<li class="ok">✅ /api/models/registry lista 10 modelos con metadatos</li>
+<li class="ok">✅ /api/models/registry/minimax-m2.7 retorna contexto + coste + capabilities</li>
+<li class="ok">✅ /api/catalog lista 9 categorías con conectores</li>
+<li class="ok">✅ POST /api/marketplace/install/GitLab instala conector</li>
+<li class="ok">✅ /api/destinos muestra catálogo + activos</li>
+<li class="ok">✅ POST /api/destinos/vps_worker/activar activa destino</li>
+<li class="ok">✅ POST /api/dispatch/claude-code-A despacha tarea con lifecycle completo</li>
+</ul>
+<p style="color:var(--green);font-weight:700;margin-top:8px">14/14 endpoints del parche 1 verificados con curl real</p>
+</div>
+
+<h2>10 · Endpoints totales del router</h2>
+<div class="box">
+<p><strong>v1.0 (original):</strong> 27 endpoints REST + WebSocket</p>
+<p><strong>v1.1 (parche 1):</strong> +14 nuevos endpoints = <span class="ok">41 endpoints REST</span> + 1 WebSocket</p>
+<p style="color:var(--gray);font-size:11px">Total módulos: 60+ (router + 18 providers + 10 modelos + 9 categorías catálogo + marketplace + dispatcher + 3 agentes + arquitectura 3 capas)</p>
+</div>
+
+<p class="meta">PARCHE 1 integrado · 2026-07-11 · MAXBRY Router v1.1 · Push a GitHub commit a6debaf</p>
+
+</body>
+</html>

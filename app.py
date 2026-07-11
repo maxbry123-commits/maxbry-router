@@ -526,6 +526,170 @@ def uninstall_connector(name: str):
     return {"ok": True}
 
 
+# === M61 · Arquitectura GitHub↔VPS↔Destinos (mapa de capas) ===
+arquitectura = {
+    "github": {
+        "rol": "Hogar del agente",
+        "contenido": [
+            "Código fuente", "Claude Code", "OpenClaw", "MiMo Code",
+            "Skills", "DSL/DAG", "Contratos", "Workflows",
+            "Configuración", "Documentación", "Versiones (Git)"
+        ],
+        "repos": [
+            {"name": "agentes", "url": "https://github.com/maxbry123-commits/agentes", "size_kb": 0, "private": False},
+            {"name": "maxbry-router", "url": "https://github.com/maxbry123-commits/maxbry-router", "size_kb": 0, "private": False},
+            {"name": "nct-hub", "url": "https://github.com/maxbry123-commits/nct-hub", "size_kb": 0, "private": False},
+            {"name": "nct-core", "url": "https://github.com/maxbry123-commits/nct-core", "size_kb": 0, "private": False}
+        ]
+    },
+    "vps": {
+        "rol": "Cerebro + Memoria + Coordinación",
+        "ip": "95.111.232.89",
+        "puertos_abiertos": [22, 8000, 7001],
+        "componentes": [
+            "Router Universal", "Memoria", "state.json", "RAG", "Scheduler",
+            "Queue Manager", "Event Bus", "Service Registry", "Provider Manager",
+            "LiteLLM", "OpenRouter", "API Gateway", "Secrets Vault", "Health Check",
+            "Watchdog", "Circuit Breaker", "Logs", "Trazabilidad", "Cache (Redis)",
+            "Base de datos", "Consenso", "Loops", "Recovery Manager"
+        ]
+    },
+    "destinos": {
+        "rol": "Músculos que ejecutan el trabajo",
+        "tipos": [
+            {"id": "hf_space", "name": "Hugging Face Space", "icon": "hf", "configurable": True, "state": "configurable"},
+            {"id": "railway", "name": "Railway Worker", "icon": "railway", "configurable": True, "state": "configurable"},
+            {"id": "docker", "name": "Docker Container", "icon": "docker", "configurable": True, "state": "configurable"},
+            {"id": "k8s", "name": "Kubernetes Pod", "icon": "k8s", "configurable": True, "state": "configurable"},
+            {"id": "vps_worker", "name": "VPS Worker", "icon": "vps", "configurable": True, "state": "configurable"},
+            {"id": "pc_local", "name": "PC Local", "icon": "pc", "configurable": True, "state": "configurable"},
+            {"id": "otro_servidor", "name": "Otro Servidor", "icon": "server", "configurable": True, "state": "configurable"}
+        ]
+    },
+    "regla": "GitHub = conocimiento y código · VPS = cerebro y memoria · Destinos = músculos que ejecutan",
+    "version": "v2"
+}
+
+@app.get("/api/architecture")
+def get_architecture():
+    return arquitectura
+
+
+# === M62 · Agent Identity (definición del agente desde GitHub) ===
+agent_identities = {
+    "claude-code-A": {
+        "github_repo": "https://github.com/anthropics/claude-code",
+        "version": "d4d8fbb",
+        "vps_coordinator": "95.111.232.89:8000",
+        "destinos_disponibles": ["hf_space", "vps_worker", "railway"],
+        "destino_actual": None,
+        "memoria": "/workspace/MAXBRY/memory/",
+        "skills": ["frontend-design", "mcp-builder", "webapp-testing", "docx", "pdf", "pptx", "xlsx"],
+        "state": "ready",
+        "lifecycle": ["github_source", "vps_coordination", "destination_execution", "result_return", "memory_update"]
+    },
+    "mimo-code-A": {
+        "github_repo": "https://github.com/XiaomiMiMo/MiMo-Code",
+        "version": "f056dcc",
+        "vps_coordinator": "95.111.232.89:8000",
+        "destinos_disponibles": ["hf_space", "vps_worker"],
+        "destino_actual": None,
+        "memoria": "/workspace/MAXBRY/memory/",
+        "skills": ["frontend-design", "mcp-builder", "webapp-testing", "docx", "pdf", "pptx", "xlsx"],
+        "state": "ready",
+        "lifecycle": ["github_source", "vps_coordination", "destination_execution", "result_return", "memory_update"]
+    },
+    "openclaw": {
+        "github_repo": "https://github.com/openclaw/openclaw",
+        "version": "main",
+        "vps_coordinator": "95.111.232.89:8000",
+        "destinos_disponibles": ["hf_space", "vps_worker", "railway", "docker"],
+        "destino_actual": None,
+        "memoria": "/workspace/MAXBRY/memory/",
+        "skills": ["frontend-design", "mcp-builder", "webapp-testing", "docx", "pdf", "pptx", "xlsx", "claude-api", "web-artifacts-builder"],
+        "state": "ready",
+        "lifecycle": ["github_source", "vps_coordination", "destination_execution", "result_return", "memory_update"]
+    }
+}
+
+@app.get("/api/agent/identity")
+def list_agents():
+    return agent_identities
+
+@app.get("/api/agent/identity/{aid}")
+def get_agent_identity(aid: str):
+    if aid not in agent_identities:
+        raise HTTPException(404, "Agente no existe")
+    return agent_identities[aid]
+
+
+# === M63 · Dispatcher de destinos ===
+destinos_activos = {}
+
+@app.get("/api/destinos")
+def list_destinos():
+    return {
+        "catalogo": arquitectura["destinos"]["tipos"],
+        "activos": destinos_activos,
+        "count_activos": len(destinos_activos)
+    }
+
+@app.post("/api/destinos/{tipo}/activar")
+def activar_destino(tipo: str, body: dict = {}):
+    """Activa un destino con config: {endpoint, credentials, region, etc}"""
+    destinos_activos[tipo] = {
+        "endpoint": body.get("endpoint", ""),
+        "region": body.get("region", "us-east-1"),
+        "status": "active",
+        "activated_at": "2026-07-11T17:00:00Z",
+        "tasks_dispatched": 0
+    }
+    return destinos_activos[tipo]
+
+@app.post("/api/destinos/{tipo}/desactivar")
+def desactivar_destino(tipo: str):
+    destinos_activos.pop(tipo, None)
+    return {"ok": True}
+
+@app.post("/api/dispatch/{agent_id}")
+def dispatch_task(agent_id: str, body: dict):
+    """El router decide destino y despacha tarea.
+    Flujo: github → vps → destino elegido → result → memory"""
+    if agent_id not in agent_identities:
+        raise HTTPException(404, "Agente no existe")
+    agent = agent_identities[agent_id]
+    # Política simple: primer destino activo disponible
+    destino_elegido = None
+    for d in agent["destinos_disponibles"]:
+        if d in destinos_activos and destinos_activos[d]["status"] == "active":
+            destino_elegido = d
+            break
+    if not destino_elegido:
+        destino_elegido = agent["destinos_disponibles"][0] if agent["destinos_disponibles"] else "vps_worker"
+    # Incrementar contador
+    if destino_elegido in destinos_activos:
+        destinos_activos[destino_elegido]["tasks_dispatched"] += 1
+    # Log evento
+    events_log.append({
+        "ts": "2026-07-11T17:00:00Z",
+        "type": "dispatch",
+        "agent": agent_id,
+        "origen": "github",
+        "coordinator": agent["vps_coordinator"],
+        "destino": destino_elegido,
+        "task_id": body.get("task_id", "t-" + str(len(events_log)))
+    })
+    return {
+        "status": "DISPATCHED",
+        "agent": agent_id,
+        "origen": "github",
+        "coordinator": agent["vps_coordinator"],
+        "destino": destino_elegido,
+        "task_id": body.get("task_id"),
+        "lifecycle": agent["lifecycle"]
+    }
+
+
 # === WebSocket ===
 @app.websocket("/ws/router")
 async def ws_router(ws: WebSocket):
