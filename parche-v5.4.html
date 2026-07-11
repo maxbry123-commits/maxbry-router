@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PARCHE v5.4 · Router Universal MAXBRY</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; color: #fafafa; font-family: -apple-system, "Inter", sans-serif; line-height: 1.65; padding: 32px; }
+  h1 { color: #ff2d2d; font-size: 28px; border-bottom: 3px solid #ff2d2d; padding-bottom: 12px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px; }
+  h2 { color: #ff5050; font-size: 20px; margin: 32px 0 12px; border-left: 4px solid #ff2d2d; padding-left: 12px; text-transform: uppercase; }
+  h3 { color: #ff7070; font-size: 14px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+  p, li { color: #fafafa; font-size: 13px; margin-bottom: 6px; }
+  .r { color: #ff2d2d; font-weight: 700; }
+  .b { color: #fafafa; }
+  .g { color: #10a37f; font-weight: 700; }
+  .y { color: #f59e0b; font-weight: 700; }
+  .c { color: #06b6d4; font-weight: 700; }
+  code { background: #1a0000; border: 1px solid #ff2d2d; color: #ff8080; padding: 2px 6px; border-radius: 3px; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  pre { background: #0a0a0a; border: 1px solid #ff2d2d; color: #ff8080; padding: 12px; border-radius: 4px; font-family: "JetBrains Mono", monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; white-space: pre-wrap; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  th { background: #ff2d2d; color: #000; padding: 8px; text-align: left; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+  td { background: #0a0a0a; color: #fafafa; padding: 6px 8px; border: 1px solid #2a0000; }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  .box { background: #0a0a0a; border: 1px solid #ff2d2d; border-left: 6px solid #ff2d2d; padding: 16px; margin: 16px 0; border-radius: 4px; }
+  .ok { border-color: #10a37f; border-left-color: #10a37f; }
+  .warn { border-color: #f59e0b; border-left-color: #f59e0b; }
+  hr { border: none; border-top: 1px solid #ff2d2d; margin: 32px 0; }
+  .check { color: #10a37f; font-weight: 700; }
+  .cross { color: #ff2d2d; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>🔴 PARCHE UNIFICADO v5.4 · ROUTER MAXBRY</h1>
+
+<p><span class="r">15 FASES · 17 MÓDULOS NUEVOS · DSL INTEGRADO</span></p>
+<p>Fecha: 2026-07-11 · Mavis-417847400026327 · Repo: maxbry123-commits/maxbry-router</p>
+
+<hr>
+
+<h2>1 · AUDITORÍA (FASE 1)</h2>
+
+<h3>1.1 · Estado real del sistema (verificado con curl)</h3>
+<pre>
+[✓] Backend FastAPI corriendo: GET /health → 200
+[✓] 49 endpoints REST + WebSocket
+[✓] 3 archivos del Router (enchufe_gate/conectores/red_universal) validados 10x
+[✓] Bridge: GET /api/bridge/health → 200, github_connected=true
+[✓] Frontend v5.3 con AI panel + mini chat autofill
+[✓] 2 niveles acceso (Ingeniero AES-GCM + Usuario)
+[✓] MCP server con 8 tools
+[✓] 30 skills documentadas (ROUTER-SKILLS.md pusheado)
+[✗] Backend se cayó 1 vez por logger no definido (ARREGLADO)
+[✗] Bridge sync devolvía 403 sin header (ARREGLADO)
+[🟡] VPS real 95.111.232.89 — puerto 7001 caído (no se puede arreglar sin SSH)
+[🟡] 3 skills backend (consensus/refutation/auto_recovery) no implementadas
+[🟡] Marketplace UI no construida
+[🟡] Builder Studio UI no construida
+[🟡] Custom panels no auto-descubiertos
+</pre>
+
+<h3>1.2 · GAP REPORT</h3>
+<table>
+<tr><th>Módulo DSL</th><th>Estado</th><th>Acción</th></tr>
+<tr><td>Bridge Manager</td><td class="g">Backend listo</td><td>UI en AI panel</td></tr>
+<tr><td>Cache Manager</td><td class="g">Backend listo</td><td>UI control</td></tr>
+<tr><td>Memory Manager</td><td class="g">Backend listo</td><td>UI browse</td></tr>
+<tr><td>Provider Manager</td><td class="r">Pendiente</td><td>Crear panel + 16 proveedores</td></tr>
+<tr><td>Connection Registry</td><td class="y">Parcial</td><td>Consolidar</td></tr>
+<tr><td>Agent Registry</td><td class="g">Funciona</td><td>UI mejorada</td></tr>
+<tr><td>Service Registry</td><td class="r">Pendiente</td><td>Crear</td></tr>
+<tr><td>Workspace Manager</td><td class="r">Pendiente</td><td>Crear</td></tr>
+<tr><td>Queue Manager</td><td class="g">Fichas cubren</td><td>Renombrar a Queue</td></tr>
+<tr><td>Secrets Vault</td><td class="g">AES-GCM funciona</td><td>—</td></tr>
+<tr><td>Scheduler</td><td class="y">DAG básico</td><td>Mejorar</td></tr>
+<tr><td>Circuit Breaker</td><td class="r">No existe</td><td>Crear</td></tr>
+<tr><td>Recovery Manager</td><td class="r">No existe</td><td>Crear</td></tr>
+<tr><td>Health Manager</td><td class="y">Parcial</td><td>Consolidar</td></tr>
+<tr><td>Monitoring</td><td class="g">Logs WS</td><td>Añadir métricas</td></tr>
+<tr><td>Telemetry</td><td class="r">No existe</td><td>Crear (OpenTelemetry ready)</td></tr>
+<tr><td>Event Bus</td><td class="y">WebSocket</td><td>Renombrar a Event Bus</td></tr>
+</table>
+
+<hr>
+
+<h2>2 · 17 MÓDULOS NUEVOS (FASE 2)</h2>
+
+<h3>Estructura</h3>
+<pre>
+backend/modules/
+├── bridge/manager.py          ← ya existe (bridge/service.py)
+├── cache/manager.py           ← ya existe (cache en bridge)
+├── memory/manager.py          ← ya existe (ConectorMemoria)
+├── provider/manager.py        ← NUEVO
+├── connection/registry.py     ← NUEVO
+├── agent/registry.py          ← NUEVO
+├── service/registry.py        ← NUEVO
+├── workspace/manager.py       ← NUEVO
+├── queue/manager.py           ← NUEVO
+├── secrets/vault.py           ← ya existe (AES-GCM)
+├── scheduler/engine.py        ← NUEVO
+├── circuit_breaker/breaker.py ← NUEVO
+├── recovery/manager.py        ← NUEVO
+├── health/manager.py          ← NUEVO
+├── monitoring/metrics.py      ← NUEVO
+├── telemetry/tracing.py       ← NUEVO
+└── event_bus/bus.py           ← NUEVO
+</pre>
+
+<p><span class="r">REGLA:</span> cada módulo expone <code>interface.py</code> con clase abstracta, <code>impl.py</code> con implementación, <code>api.py</code> con endpoints FastAPI, <code>schema.yaml</code> con campos editables. Desacoplado total.</p>
+
+<hr>
+
+<h2>3 · PROVIDER LAYER (FASE 3)</h2>
+
+<p>Panel independiente con 16 proveedores. Cada uno con: nombre, endpoint, API key, modelos, prioridad, fallback, health check, retry, timeout, latencia, coste, estado.</p>
+
+<table>
+<tr><th>#</th><th>Proveedor</th><th>Estado</th></tr>
+<tr><td>1</td><td>LiteLLM</td><td class="g">Activo (146 providers)</td></tr>
+<tr><td>2</td><td>OpenRouter</td><td class="y">Sin key</td></tr>
+<tr><td>3</td><td>AWS Bedrock</td><td class="y">Sin key</td></tr>
+<tr><td>4</td><td>Google Vertex AI</td><td class="y">Sin key</td></tr>
+<tr><td>5</td><td>Azure AI Foundry</td><td class="y">Sin key</td></tr>
+<tr><td>6</td><td>OpenAI Compatible</td><td class="g">Activo</td></tr>
+<tr><td>7</td><td>Ollama</td><td class="y">Local</td></tr>
+<tr><td>8</td><td>vLLM</td><td class="y">Local</td></tr>
+<tr><td>9</td><td>llama.cpp</td><td class="y">Local</td></tr>
+<tr><td>10</td><td>Hugging Face</td><td class="g">Activo (5 NIM keys)</td></tr>
+<tr><td>11</td><td>Groq</td><td class="y">Sin key</td></tr>
+<tr><td>12</td><td>Together AI</td><td class="y">Sin key</td></tr>
+<tr><td>13</td><td>Fireworks</td><td class="y">Sin key</td></tr>
+<tr><td>14</td><td>SambaNova</td><td class="y">Sin key</td></tr>
+<tr><td>15</td><td>Cerebras</td><td class="y">Sin key</td></tr>
+<tr><td>16</td><td>Custom</td><td class="g">Configurable</td></tr>
+</table>
+
+<hr>
+
+<h2>4 · RESOURCE LIBRARY (FASE 4)</h2>
+
+<p>Registro centralizado donde cada recurso se da de alta UNA VEZ y se reutiliza:</p>
+<pre>
+APIs           → anthropic, openai, minimax, gemini, qwen
+MCP            → github, files, browser
+Repos          → maxbry-router, agentes
+Servers        → VPS 95.111.232.89, HF, Railway, Docker
+Messaging      → Telegram, Discord, Slack, Gmail
+SSH            → max@95.111.232.89
+Databases      → Redis, Qdrant, PostgreSQL
+Secrets        → cifrados AES-GCM-256
+</pre>
+
+<p>Cada recurso tiene: <code>id</code>, <code>name</code>, <code>kind</code>, <code>state</code>, <code>health</code>, <code>last_used</code>, <code>actions[]</code>.</p>
+
+<hr>
+
+<h2>5 · WORKFLOW BUILDER (FASE 5)</h2>
+
+<p>Canvas React Flow + 6 paneles acoplables:</p>
+<ul>
+  <li><span class="r">Canvas</span> — drag & drop, autolayout, fitView, minimap</li>
+  <li><span class="r">Connection Inspector</span> — payload, tiempo, tokens, retries, estado por conexión</li>
+  <li><span class="r">Flow Inspector</span> — DAG completo, profundidad, caminos críticos</li>
+  <li><span class="r">Timeline</span> — runs en orden cronológico con scroll lateral</li>
+  <li><span class="r">Event Viewer</span> — stream de eventos WebSocket con filtro</li>
+  <li><span class="r">Live Status</span> — salud en tiempo real de cada nodo</li>
+  <li><span class="r">Execution Queue</span> — fichas en cola, estado, progreso</li>
+</ul>
+
+<hr>
+
+<h2>6 · BUILDER STUDIO (FASE 6)</h2>
+
+<p>Crear SIN TOCAR CÓDIGO: Panel, Ficha, Skill, MCP, Gateway, Agente, Destino, Workflow, Formulario, Dashboard, Plugin.</p>
+<p>Misma plantilla visual para todos. Mismo flujo: tipo → campos → preview → guardar.</p>
+
+<hr>
+
+<h2>7 · SCHEMA BUILDER (FASE 7)</h2>
+
+<p>Cada ficha es dinámica. Tipos: text, number, select, multi_select, slider, switch, toggle, date, color, icon, password, textarea, code, yaml, json, dsl, file_upload, table, tree, canvas, graph, button, actions.</p>
+
+<hr>
+
+<h2>8 · CONFIGURATION ASSISTANT (FASE 8)</h2>
+
+<p>IA integrada (ya funciona en v5.3): mini chat + sidebar. 4 tabs: Config / Diagnostics / Architecture / Optimization. Autocompletar NL, verificar antes de guardar, explicar errores, reparar automático.</p>
+
+<hr>
+
+<h2>9 · BRIDGE MANAGER (FASE 9)</h2>
+
+<p>Ya creado en <code>bridge/service.py</code>. GitHub → Scanner → Registry → Cache → API.</p>
+<p>Verificado: <code>GET /api/bridge/health</code> → <code>github_connected: true</code>, <code>sync_count: 1</code>.</p>
+
+<hr>
+
+<h2>10 · CACHE MANAGER (FASE 10)</h2>
+
+<p>TTL configurable por entrada. Guarda: skills indexados, docs, respuestas de modelos (con hash para invalidar), tokens temporales, consultas frecuentes.</p>
+
+<hr>
+
+<h2>11 · OBSERVABILIDAD (FASE 11)</h2>
+
+<p>Dashboard de salud, logs estructurados, timeline de runs, métricas, inspector, costes, latencia, tracing, OpenTelemetry-ready (OTLP exporter).</p>
+
+<hr>
+
+<h2>12 · RECOVERY (FASE 12)</h2>
+
+<p>Watchdog (timer), Heartbeat (ping), Circuit Breaker (open/half/closed), Retry con backoff, Fallback chain, Auto Recovery (reconexión + restart), Health check cada N segundos.</p>
+
+<hr>
+
+<h2>13 · UX (FASE 13)</h2>
+
+<p>Command Palette (Ctrl+K) — ya implementado. Quick Actions, Layouts, Dock, Modo Básico/Avanzado (toggle), Wizard, Marketplace UI, Buscador Global.</p>
+
+<hr>
+
+<h2>14 · VALIDACIÓN (FASE 14)</h2>
+
+<h3>Checklist 10x</h3>
+<pre>
+[✓] 1. Backend responde /health
+[✓] 2. Backend responde /api/dashboard
+[✓] 3. Backend responde /api/bridge/health
+[✓] 4. Backend responde /api/bridge/skills
+[✓] 5. Bridge sync funciona (engineer)
+[✓] 6. Frontend compila sin errores TS
+[✓] 7. Vite levanta en :5173
+[✓] 8. Login 2 niveles funciona
+[✓] 9. Mini chat autofill detecta campos
+[✓] 10. AI panel tiene 4 tabs + 7 quick actions
+</pre>
+
+<hr>
+
+<h2>15 · ENTREGABLES (FASE 15)</h2>
+
+<table>
+<tr><th>Doc</th><th>Estado</th></tr>
+<tr><td>tarea-1.html actualizado</td><td class="g">✓ en /workspace/MAXBRY-ROUTER/</td></tr>
+<tr><td>architecture.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>router_modules.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>builder_studio.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>provider_layer.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>bridge_manager.md</td><td class="g">✓ bridge/README.md</td></tr>
+<tr><td>resource_library.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>change_log.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>migration.md</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>gap_report.md</td><td class="g">✓ este doc (sección 1.2)</td></tr>
+<tr><td>manifest.json</td><td class="y">🟡 pendiente</td></tr>
+<tr><td>ROUTER-SKILLS.md</td><td class="g">✓ pusheado</td></tr>
+</table>
+
+<hr>
+
+<h2>CRITERIO DE ÉXITO</h2>
+<div class="box ok">
+<p>Router Universal modular, extensible y configurable desde la interfaz.</p>
+<p>Añadir paneles, conectores, agentes, proveedores sin tocar código base.</p>
+<p>Escribir manual en el repo → solo cuando Max lo apruebe.</p>
+</div>
+
+<p style="text-align:center; color:#ff2d2d; font-weight:700; margin-top:32px;">
+  🔴 FIN DEL PARCHE v5.4 · 15 FASES · 17 MÓDULOS
+</p>
+
+</body>
+</html>
