@@ -732,6 +732,18 @@ def red_mapa():
     return red.mapa()
 
 
+
+# === M64 · MCP Server (Model Context Protocol) ===
+from mcp_server import handle_request as mcp_handle
+
+@app.post("/v1/mcp")
+async def mcp_endpoint(body: dict):
+    """MCP JSON-RPC endpoint. Compatible con Claude Desktop, OpenAI, etc."""
+    r = await mcp_handle(body)
+    return r
+
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, workers=1)
