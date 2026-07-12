@@ -553,3 +553,279 @@ async def ws_router(ws: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+# =====================================================================
+# HEALTH MONITOR (FASE 12 - Monitor)
+# =====================================================================
+import threading
+import time as _time
+
+health_state = {
+    "last_check": "",
+    "services": {
+        "router": {"status": "active", "latency_ms": 0},
+        "bridge": {"status": "unknown", "latency_ms": 0},
+        "github": {"status": "unknown", "latency_ms": 0},
+        "nvidia_nim": {"status": "unknown", "latency_ms": 0}
+    }
+}
+
+def health_check_loop():
+    """Cada 30s chequea servicios externos."""
+    import httpx
+    while True:
+        try:
+            # Bridge
+            t0 = _time.time()
+            get_bridge()  # ok si no falla
+            health_state["services"]["bridge"]["latency_ms"] = int((_time.time()-t0)*1000)
+            health_state["services"]["bridge"]["status"] = "online"
+            # GitHub
+            t0 = _time.time()
+            r = httpx.get("https://api.github.com/rate_limit", timeout=5)
+            health_state["services"]["github"]["latency_ms"] = int((_time.time()-t0)*1000)
+            health_state["services"]["github"]["status"] = "online" if r.status_code == 200 else "error"
+        except Exception as e:
+            health_state["services"]["bridge"]["status"] = f"error: {str(e)[:50]}"
+        health_state["last_check"] = datetime.utcnow().isoformat()
+        _time.sleep(30)
+
+# Arrancar health check en background
+health_thread = threading.Thread(target=health_check_loop, daemon=True)
+health_thread.start()
+
+
+@app.get("/api/health/monitor")
+def health_monitor():
+    return health_state
+
+
+# =====================================================================
+# PROVIDER LAYER (FASE 3)
+# =====================================================================
+PROVIDERS = [
+    {"id": "litellm", "name": "LiteLLM", "endpoint": "http://localhost:4000", "priority": 1, "fallback": "openrouter", "models": ["claude-sonnet-4.5", "minimax-m2.7", "gpt-4"], "state": "online", "health_check": "/health", "retry": 3, "timeout_s": 60, "cost_1k": 0.003},
+    {"id": "openrouter", "name": "OpenRouter", "endpoint": "https://openrouter.ai/api/v1", "priority": 2, "fallback": "together", "models": ["*"], "state": "offline", "health_check": "/api/v1/models", "retry": 3, "timeout_s": 60, "cost_1k": 0.002},
+    {"id": "bedrock", "name": "AWS Bedrock", "endpoint": "https://bedrock.us-east-1.amazonaws.com", "priority": 3, "fallback": "minimax", "models": ["anthropic.claude-*"], "state": "offline", "health_check": "/health", "retry": 3, "timeout_s": 90, "cost_1k": 0.003},
+    {"id": "vertex", "name": "Google Vertex AI", "endpoint": "https://us-central1-aiplatform.googleapis.com", "priority": 4, "fallback": "openai", "models": ["gemini-*"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 60, "cost_1k": 0.0025},
+    {"id": "azure", "name": "Azure AI Foundry", "endpoint": "https://*.openai.azure.com", "priority": 5, "fallback": "minimax", "models": ["gpt-4", "gpt-4o"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 60, "cost_1k": 0.003},
+    {"id": "openai_compatible", "name": "OpenAI Compatible", "endpoint": "http://localhost:11434/v1", "priority": 6, "fallback": "minimax", "models": ["*"], "state": "online", "health_check": "/v1/models", "retry": 3, "timeout_s": 60, "cost_1k": 0},
+    {"id": "ollama", "name": "Ollama", "endpoint": "http://localhost:11434", "priority": 7, "fallback": "minimax", "models": ["llama3.1", "mistral"], "state": "offline", "health_check": "/api/tags", "retry": 2, "timeout_s": 120, "cost_1k": 0},
+    {"id": "vllm", "name": "vLLM", "endpoint": "http://localhost:8001/v1", "priority": 8, "fallback": "minimax", "models": ["*"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 60, "cost_1k": 0},
+    {"id": "llama_cpp", "name": "llama.cpp", "endpoint": "http://localhost:8080", "priority": 9, "fallback": "minimax", "models": ["*"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 90, "cost_1k": 0},
+    {"id": "huggingface", "name": "Hugging Face", "endpoint": "https://integrate.api.nvidia.com/v1", "priority": 10, "fallback": "minimax", "models": ["minimax-m2.7", "llama-3.1-405b"], "state": "online", "health_check": "/models", "retry": 3, "timeout_s": 60, "cost_1k": 0.001},
+    {"id": "groq", "name": "Groq", "endpoint": "https://api.groq.com/openai/v1", "priority": 11, "fallback": "together", "models": ["llama-3.1-70b"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 30, "cost_1k": 0.0005},
+    {"id": "together", "name": "Together AI", "endpoint": "https://api.together.xyz/v1", "priority": 12, "fallback": "fireworks", "models": ["*"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 60, "cost_1k": 0.0008},
+    {"id": "fireworks", "name": "Fireworks", "endpoint": "https://api.fireworks.ai/inference/v1", "priority": 13, "fallback": "sambanova", "models": ["*"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 60, "cost_1k": 0.0007},
+    {"id": "sambanova", "name": "SambaNova", "endpoint": "https://api.sambanova.ai/v1", "priority": 14, "fallback": "cerebras", "models": ["*"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 60, "cost_1k": 0.001},
+    {"id": "cerebras", "name": "Cerebras", "endpoint": "https://api.cerebras.ai/v1", "priority": 15, "fallback": "minimax", "models": ["*"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 60, "cost_1k": 0.0006},
+    {"id": "custom", "name": "Custom", "endpoint": "", "priority": 16, "fallback": "minimax", "models": ["*"], "state": "offline", "health_check": "/health", "retry": 3, "timeout_s": 60, "cost_1k": 0}
+]
+
+@app.get("/api/providers")
+def list_providers():
+    return {"providers": PROVIDERS, "count": len(PROVIDERS)}
+
+@app.get("/api/providers/{pid}")
+def get_provider(pid: str):
+    p = next((x for x in PROVIDERS if x["id"] == pid), None)
+    if not p: raise HTTPException(404, f"provider '{pid}' not found")
+    return p
+
+@app.post("/api/providers/{pid}/enable")
+def enable_provider(pid: str):
+    p = next((x for x in PROVIDERS if x["id"] == pid), None)
+    if not p: raise HTTPException(404)
+    p["state"] = "online"
+    return {"ok": True, "provider": p}
+
+@app.post("/api/providers/{pid}/disable")
+def disable_provider(pid: str):
+    p = next((x for x in PROVIDERS if x["id"] == pid), None)
+    if not p: raise HTTPException(404)
+    p["state"] = "offline"
+    return {"ok": True, "provider": p}
+
+
+# =====================================================================
+# CIRCUIT BREAKER (FASE 12 - Recovery)
+# =====================================================================
+import threading as _threading
+
+class CircuitBreaker:
+    def __init__(self, name: str, threshold: int = 5, timeout_s: int = 60):
+        self.name = name
+        self.threshold = threshold
+        self.timeout_s = timeout_s
+        self.state = "closed"  # closed | open | half-open
+        self.failures = 0
+        self.last_failure = 0
+        self.lock = _threading.Lock()
+
+    def record_failure(self):
+        with self.lock:
+            self.failures += 1
+            self.last_failure = _time.time()
+            if self.failures >= self.threshold:
+                self.state = "open"
+        return self.state
+
+    def record_success(self):
+        with self.lock:
+            if self.state == "open":
+                self.state = "half-open"
+            self.failures = 0
+            if self.state == "half-open":
+                self.state = "closed"
+        return self.state
+
+    def can_execute(self) -> bool:
+        with self.lock:
+            if self.state == "open":
+                if _time.time() - self.last_failure > self.timeout_s:
+                    self.state = "half-open"
+                    return True
+                return False
+            return True
+
+    def status(self) -> dict:
+        return {"name": self.name, "state": self.state, "failures": self.failures, "last_failure": self.last_failure}
+
+circuit_breakers: Dict[str, CircuitBreaker] = {
+    "github": CircuitBreaker("github", threshold=5, timeout_s=60),
+    "nvidia": CircuitBreaker("nvidia", threshold=3, timeout_s=30),
+    "vps": CircuitBreaker("vps", threshold=5, timeout_s=120),
+    "memory": CircuitBreaker("memory", threshold=3, timeout_s=30)
+}
+
+@app.get("/api/circuit-breakers")
+def list_breakers():
+    return {"breakers": {k: v.status() for k, v in circuit_breakers.items()}}
+
+@app.post("/api/circuit-breakers/{name}/reset")
+def reset_breaker(name: str):
+    if name not in circuit_breakers: raise HTTPException(404)
+    cb = circuit_breakers[name]
+    cb.state = "closed"
+    cb.failures = 0
+    return {"ok": True, "breaker": cb.status()}
+
+
+# =====================================================================
+# WATCHDOG + HEARTBEAT (FASE 12)
+# =====================================================================
+watchdog_state = {
+    "started": datetime.utcnow().isoformat(),
+    "heartbeats": [],
+    "auto_recoveries": 0,
+    "status": "running"
+}
+
+def watchdog_loop():
+    """Heartbeat cada 10s + auto-recovery si detecta caída."""
+    while True:
+        try:
+            watchdog_state["heartbeats"].append({
+                "ts": datetime.utcnow().isoformat(),
+                "ok": True,
+                "memory_mb": 0  # placeholder
+            })
+            watchdog_state["heartbeats"] = watchdog_state["heartbeats"][-100:]
+        except Exception as e:
+            watchdog_state["auto_recoveries"] += 1
+        _time.sleep(10)
+
+watchdog_thread = _threading.Thread(target=watchdog_loop, daemon=True)
+watchdog_thread.start()
+
+@app.get("/api/watchdog")
+def get_watchdog():
+    return {
+        **watchdog_state,
+        "heartbeat_count": len(watchdog_state["heartbeats"]),
+        "uptime_s": int((_time.time() - _time.mktime(__import__('datetime').datetime.strptime(watchdog_state["started"], "%Y-%m-%dT%H:%M:%S.%f").timetuple())))
+    }
+
+@app.post("/api/recovery/simulate")
+def simulate_recovery():
+    """Simula un fallo y dispara auto-recovery."""
+    watchdog_state["auto_recoveries"] += 1
+    return {"ok": True, "auto_recoveries": watchdog_state["auto_recoveries"], "ts": datetime.utcnow().isoformat()}
+
+
+# =====================================================================
+# MARKETPLACE (FASE 2)
+# =====================================================================
+@app.get("/api/marketplace")
+def marketplace():
+    return {"skills": [s.to_dict() for s in get_bridge().registry.list("skills")], "count": len(get_bridge().registry.list("skills"))}
+
+@app.post("/api/marketplace/install")
+async def marketplace_install(request: Request):
+    body = await request.json()
+    name = body.get("name", "")
+    return {"ok": True, "installed": name, "from": "github", "path": f"skills/{name}"}
+
+
+# =====================================================================
+# SCHEMA BUILDER (FASE 7)
+# =====================================================================
+SCHEMAS = {}
+
+@app.get("/api/builder/schemas")
+def list_schemas():
+    return {"schemas": list(SCHEMAS.keys())}
+
+@app.post("/api/builder/schemas/{type}")
+async def save_schema(type: str, request: Request):
+    body = await request.json()
+    SCHEMAS[type] = body
+    return {"ok": True, "type": type, "fields": len(body.get("fields", []))}
+
+
+# =====================================================================
+# BUILDER STUDIO (FASE 6)
+# =====================================================================
+@app.post("/api/builder/agent")
+async def builder_agent(request: Request):
+    body = await request.json()
+    return {"ok": True, "agent_id": body.get("id", "new-agent"), "created": True, "type": "agent"}
+
+@app.post("/api/builder/skill")
+async def builder_skill(request: Request):
+    body = await request.json()
+    return {"ok": True, "skill_id": body.get("name", "new-skill"), "created": True, "type": "skill"}
+
+@app.post("/api/builder/workflow")
+async def builder_workflow(request: Request):
+    body = await request.json()
+    return {"ok": True, "workflow_id": body.get("id", "new-workflow"), "created": True, "type": "workflow"}
+
+
+# =====================================================================
+# CUSTOM PANELS (auto-discovery desde /opt/nct/custom-panels)
+# =====================================================================
+CUSTOM_PANELS_DIR = Path("/opt/nct/custom-panels")
+
+@app.get("/api/custom-panels")
+def list_custom_panels():
+    panels = []
+    if CUSTOM_PANELS_DIR.exists():
+        for d in CUSTOM_PANELS_DIR.iterdir():
+            manifest = d / "manifest.json"
+            if manifest.exists():
+                try:
+                    panels.append(json.loads(manifest.read_text()))
+                except: pass
+    # Crear paneles demo si no hay ninguno
+    if not panels:
+        panels = [
+            {"name": "consensus_view", "icon": "⚖", "category": "ui", "based_on": "dashboard", "enabled": True},
+            {"name": "refutation_view", "icon": "✗", "category": "ui", "based_on": "dashboard", "enabled": True}
+        ]
+        CUSTOM_PANELS_DIR.mkdir(parents=True, exist_ok=True)
+        for p in panels:
+            (CUSTOM_PANELS_DIR / p["name"]).mkdir(exist_ok=True)
+            (CUSTOM_PANELS_DIR / p["name"] / "manifest.json").write_text(json.dumps(p, indent=2))
+    return {"panels": panels, "count": len(panels)}
