@@ -474,7 +474,7 @@ async def github_dispatch(workflow: str):
 async def nvidia_chat(request: Request, model: str = "", messages: list = [], max_tokens: int = 256):
     try:
         d = await request.json()
-        model = model or d.get("model", "minimax-m2.7")
+        model = model or d.get("model", "minimaxai/minimax-m3")
         messages = messages or d.get("messages", [])
         max_tokens = d.get("max_tokens", max_tokens)
     except: pass
@@ -606,7 +606,7 @@ def health_monitor():
 # PROVIDER LAYER (FASE 3)
 # =====================================================================
 PROVIDERS = [
-    {"id": "litellm", "name": "LiteLLM", "endpoint": "http://localhost:4000", "priority": 1, "fallback": "openrouter", "models": ["claude-sonnet-4.5", "minimax-m2.7", "gpt-4"], "state": "online", "health_check": "/health", "retry": 3, "timeout_s": 60, "cost_1k": 0.003},
+    {"id": "litellm", "name": "LiteLLM", "endpoint": "http://localhost:4000", "priority": 1, "fallback": "openrouter", "models": ["claude-sonnet-4.5", "minimaxai/minimax-m3", "gpt-4"], "state": "online", "health_check": "/health", "retry": 3, "timeout_s": 60, "cost_1k": 0.003},
     {"id": "openrouter", "name": "OpenRouter", "endpoint": "https://openrouter.ai/api/v1", "priority": 2, "fallback": "together", "models": ["*"], "state": "offline", "health_check": "/api/v1/models", "retry": 3, "timeout_s": 60, "cost_1k": 0.002},
     {"id": "bedrock", "name": "AWS Bedrock", "endpoint": "https://bedrock.us-east-1.amazonaws.com", "priority": 3, "fallback": "minimax", "models": ["anthropic.claude-*"], "state": "offline", "health_check": "/health", "retry": 3, "timeout_s": 90, "cost_1k": 0.003},
     {"id": "vertex", "name": "Google Vertex AI", "endpoint": "https://us-central1-aiplatform.googleapis.com", "priority": 4, "fallback": "openai", "models": ["gemini-*"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 60, "cost_1k": 0.0025},
@@ -615,7 +615,7 @@ PROVIDERS = [
     {"id": "ollama", "name": "Ollama", "endpoint": "http://localhost:11434", "priority": 7, "fallback": "minimax", "models": ["llama3.1", "mistral"], "state": "offline", "health_check": "/api/tags", "retry": 2, "timeout_s": 120, "cost_1k": 0},
     {"id": "vllm", "name": "vLLM", "endpoint": "http://localhost:8001/v1", "priority": 8, "fallback": "minimax", "models": ["*"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 60, "cost_1k": 0},
     {"id": "llama_cpp", "name": "llama.cpp", "endpoint": "http://localhost:8080", "priority": 9, "fallback": "minimax", "models": ["*"], "state": "offline", "health_check": "/health", "retry": 2, "timeout_s": 90, "cost_1k": 0},
-    {"id": "huggingface", "name": "Hugging Face", "endpoint": "https://integrate.api.nvidia.com/v1", "priority": 10, "fallback": "minimax", "models": ["minimax-m2.7", "llama-3.1-405b"], "state": "online", "health_check": "/models", "retry": 3, "timeout_s": 60, "cost_1k": 0.001},
+    {"id": "huggingface", "name": "Hugging Face", "endpoint": "https://integrate.api.nvidia.com/v1", "priority": 10, "fallback": "minimax", "models": ["minimaxai/minimax-m3", "llama-3.1-405b"], "state": "online", "health_check": "/models", "retry": 3, "timeout_s": 60, "cost_1k": 0.001},
     {"id": "groq", "name": "Groq", "endpoint": "https://api.groq.com/openai/v1", "priority": 11, "fallback": "together", "models": ["llama-3.1-70b"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 30, "cost_1k": 0.0005},
     {"id": "together", "name": "Together AI", "endpoint": "https://api.together.xyz/v1", "priority": 12, "fallback": "fireworks", "models": ["*"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 60, "cost_1k": 0.0008},
     {"id": "fireworks", "name": "Fireworks", "endpoint": "https://api.fireworks.ai/inference/v1", "priority": 13, "fallback": "sambanova", "models": ["*"], "state": "offline", "health_check": "/models", "retry": 2, "timeout_s": 60, "cost_1k": 0.0007},
@@ -1130,7 +1130,7 @@ def get_router_config():
         "prioridades": {"chat": 1, "github": 2, "vps": 3, "huggingface": 4, "railway": 5, "cloudflare": 6, "telegram": 7, "gmail": 8, "webhook": 9, "mcp": 10, "api": 11, "manual": 99},
         "orden": ["chat", "github", "vps", "huggingface"],
         "fallback": {"huggingface": "together", "together": "fireworks", "fireworks": "sambanova"},
-        "consensus": {"enabled": False, "modelos": ["claude-sonnet-4.5", "minimax-m2.7"], "voting": "majority"},
+        "consensus": {"enabled": False, "modelos": ["claude-sonnet-4.5", "minimaxai/minimax-m3"], "voting": "majority"},
         "recovery": {"enabled": True, "max_retries": 3, "backoff_s": 2, "circuit_breaker_threshold": 5}
     }
 
@@ -1201,7 +1201,7 @@ NVIDIA_KEYS = [
     os.getenv("NVIDIA_NIM_KEY_MAXBRY_WOW", "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"),
 ]
 NVIDIA_BASE = "https://integrate.api.nvidia.com/v1"
-NVIDIA_MODEL = "minimax-m2.7"  # MiniMax M3 family
+NVIDIA_MODEL = "minimaxai/minimax-m3"
 
 import itertools
 _nvidia_key_cycle = itertools.cycle(NVIDIA_KEYS)
@@ -1369,7 +1369,7 @@ async def agent_from_github(request: Request):
         if "claude" in repo_lower:
             model = "claude-sonnet-4.5"
         elif "mimo" in repo_lower or "minimax" in repo_lower:
-            model = "minimax-m2.7"
+            model = "minimaxai/minimax-m3"
         elif "openhands" in repo_lower or "open-hands" in repo_lower:
             model = "claude-sonnet-4.5"
         elif "openclaw" in repo_lower:
