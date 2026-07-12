@@ -991,3 +991,201 @@ def delete_memory(path: str):
     if not f.exists(): raise HTTPException(404)
     f.unlink()
     return {"ok": True, "deleted": path}
+
+
+# =====================================================================
+# RESOURCES LIBRARY (FASE 4) — persistente en filesystem
+# =====================================================================
+RESOURCES_DIR = Path("/opt/nct/resources")
+RESOURCES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Tipos predefinidos + recurso "cualquiera registrada"
+RESOURCE_KINDS = {
+    "api": {"label": "API", "icon": "🔌", "fields": ["name", "endpoint", "api_key", "model", "auth_header"]},
+    "mcp": {"label": "MCP Server", "icon": "🔧", "fields": ["name", "command", "args", "endpoint"]},
+    "github": {"label": "GitHub", "icon": "🐙", "fields": ["name", "token", "org", "default_branch"]},
+    "vps": {"label": "VPS / Servidor", "icon": "🖥", "fields": ["name", "host", "port", "user", "ssh_key"]},
+    "huggingface": {"label": "Hugging Face", "icon": "🤗", "fields": ["name", "api_key", "org", "space"]},
+    "cloudflare": {"label": "Cloudflare", "icon": "☁️", "fields": ["name", "account_id", "api_token", "zone_id"]},
+    "railway": {"label": "Railway", "icon": "🚂", "fields": ["name", "api_token", "project_id"]},
+    "telegram": {"label": "Telegram", "icon": "✈️", "fields": ["name", "bot_token", "chat_id"]},
+    "gmail": {"label": "Gmail", "icon": "📧", "fields": ["name", "client_id", "client_secret", "refresh_token"]},
+    "ssh": {"label": "SSH", "icon": "🔐", "fields": ["name", "host", "port", "user", "key_path"]},
+    "database": {"label": "Base de datos", "icon": "🗄", "fields": ["name", "host", "port", "user", "password", "database"]},
+    "memoria": {"label": "Memoria", "icon": "🧠", "fields": ["name", "kind", "endpoint", "ttl"]},
+    "skill": {"label": "Skill", "icon": "🧩", "fields": ["name", "category", "version", "manifest_path"]},
+    "repositorio": {"label": "Repositorio", "icon": "📁", "fields": ["name", "url", "branch", "default_branch"]},
+    "credencial": {"label": "Credencial", "icon": "🔑", "fields": ["name", "service", "username", "secret"]},
+    "otro": {"label": "Otra", "icon": "📦", "fields": ["name", "kind", "value"]}
+}
+
+@app.get("/api/resources/kinds")
+def resource_kinds():
+    return {"kinds": RESOURCE_KINDS, "count": len(RESOURCE_KINDS)}
+
+@app.get("/api/resources")
+def list_resources(kind: str = None):
+    items = []
+    for f in RESOURCES_DIR.glob("*.json"):
+        try:
+            r = json.loads(f.read_text())
+            if kind is None or r.get("kind") == kind:
+                items.append(r)
+        except: pass
+    return {"resources": items, "count": len(items)}
+
+@app.post("/api/resources")
+async def create_resource(request: Request):
+    body = await request.json()
+    rid = body.get("id", f"res-{int(_time.time()*1000)}")
+    body["id"] = rid
+    body["created"] = datetime.utcnow().isoformat()
+    body["state"] = body.get("state", "active")
+    (RESOURCES_DIR / f"{rid}.json").write_text(json.dumps(body, indent=2))
+    return {"ok": True, "resource": body}
+
+@app.get("/api/resources/{rid}")
+def get_resource(rid: str):
+    f = RESOURCES_DIR / f"{rid}.json"
+    if not f.exists(): raise HTTPException(404, f"resource '{rid}' not found")
+    return json.loads(f.read_text())
+
+@app.put("/api/resources/{rid}")
+async def update_resource(rid: str, request: Request):
+    body = await request.json()
+    body["id"] = rid
+    body["updated"] = datetime.utcnow().isoformat()
+    (RESOURCES_DIR / f"{rid}.json").write_text(json.dumps(body, indent=2))
+    return {"ok": True, "resource": body}
+
+@app.delete("/api/resources/{rid}")
+def delete_resource(rid: str):
+    f = RESOURCES_DIR / f"{rid}.json"
+    if not f.exists(): raise HTTPException(404)
+    f.unlink()
+    return {"ok": True, "deleted": rid}
+
+
+# =====================================================================
+# AGENTES — schema completo editable (entradas/salidas/recursos)
+# =====================================================================
+AGENTS_DIR_V2 = Path("/opt/nct/agents")
+AGENTS_DIR_V2.mkdir(parents=True, exist_ok=True)
+
+AGENT_INPUTS = [
+    {"id": "chat", "label": "Chat", "icon": "💬"},
+    {"id": "router", "label": "Router", "icon": "🔀"},
+    {"id": "orquestador", "label": "Orquestador", "icon": "🎼"},
+    {"id": "agente", "label": "Otro agente", "icon": "🤖"},
+    {"id": "api", "label": "API", "icon": "🔌"},
+    {"id": "mcp", "label": "MCP", "icon": "🔧"},
+    {"id": "webhook", "label": "Webhook", "icon": "🪝"},
+    {"id": "github", "label": "GitHub", "icon": "🐙"},
+    {"id": "manual", "label": "Manual", "icon": "✋"},
+    {"id": "scheduler", "label": "Scheduler", "icon": "⏰"},
+    {"id": "watchdog", "label": "Watchdog", "icon": "🐕"},
+    {"id": "recovery", "label": "Recovery", "icon": "🛟"},
+]
+
+AGENT_OUTPUTS = [
+    {"id": "chat", "label": "Chat", "icon": "💬"},
+    {"id": "github", "label": "GitHub", "icon": "🐙"},
+    {"id": "vps", "label": "VPS", "icon": "🖥"},
+    {"id": "huggingface", "label": "Hugging Face", "icon": "🤗"},
+    {"id": "railway", "label": "Railway", "icon": "🚂"},
+    {"id": "cloudflare", "label": "Cloudflare", "icon": "☁️"},
+    {"id": "telegram", "label": "Telegram", "icon": "✈️"},
+    {"id": "gmail", "label": "Gmail", "icon": "📧"},
+    {"id": "webhook", "label": "Webhook", "icon": "🪝"},
+    {"id": "mcp", "label": "MCP", "icon": "🔧"},
+    {"id": "api", "label": "API personalizada", "icon": "🔌"},
+    {"id": "manual", "label": "Archivo", "icon": "📁"},
+]
+
+@app.get("/api/agents-catalog/inputs")
+def list_agent_inputs():
+    return {"inputs": AGENT_INPUTS, "count": len(AGENT_INPUTS)}
+
+@app.get("/api/agents-catalog/outputs")
+def list_agent_outputs():
+    return {"outputs": AGENT_OUTPUTS, "count": len(AGENT_OUTPUTS)}
+
+
+# =====================================================================
+# ROUTER CONFIG — entradas/salidas/prioridades/fallback/recovery
+# =====================================================================
+ROUTER_CONFIG_DIR = Path("/opt/nct/router")
+ROUTER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+ROUTER_CONFIG_FILE = ROUTER_CONFIG_DIR / "config.json"
+
+@app.get("/api/router/config")
+def get_router_config():
+    if ROUTER_CONFIG_FILE.exists():
+        return json.loads(ROUTER_CONFIG_FILE.read_text())
+    # Default config
+    return {
+        "entradas": ["chat", "router", "orquestador", "agente", "api", "mcp", "webhook", "github", "manual"],
+        "salidas": ["chat", "github", "vps", "huggingface", "railway", "cloudflare", "telegram", "gmail", "webhook", "mcp", "api"],
+        "prioridades": {"chat": 1, "github": 2, "vps": 3, "huggingface": 4, "railway": 5, "cloudflare": 6, "telegram": 7, "gmail": 8, "webhook": 9, "mcp": 10, "api": 11, "manual": 99},
+        "orden": ["chat", "github", "vps", "huggingface"],
+        "fallback": {"huggingface": "together", "together": "fireworks", "fireworks": "sambanova"},
+        "consensus": {"enabled": False, "modelos": ["claude-sonnet-4.5", "minimax-m2.7"], "voting": "majority"},
+        "recovery": {"enabled": True, "max_retries": 3, "backoff_s": 2, "circuit_breaker_threshold": 5}
+    }
+
+@app.put("/api/router/config")
+async def put_router_config(request: Request):
+    body = await request.json()
+    body["updated"] = datetime.utcnow().isoformat()
+    ROUTER_CONFIG_FILE.write_text(json.dumps(body, indent=2))
+    return {"ok": True, "config": body}
+
+
+# =====================================================================
+# AGENTS CRUD — schema completo
+# =====================================================================
+@app.get("/api/v2/agents")
+def list_agents_v2():
+    items = []
+    for f in AGENTS_DIR_V2.glob("*.json"):
+        try: items.append(json.loads(f.read_text()))
+        except: pass
+    return {"agents": items, "count": len(items)}
+
+@app.post("/api/v2/agents")
+async def create_agent_v2(request: Request):
+    body = await request.json()
+    aid = body.get("id", f"agent-{int(_time.time()*1000)}")
+    body["id"] = aid
+    body["created"] = datetime.utcnow().isoformat()
+    body["updated"] = datetime.utcnow().isoformat()
+    body["state"] = body.get("state", "active")
+    body.setdefault("entradas", {"chat": True, "router": True, "agente": True, "api": True, "mcp": True, "webhook": True, "github": True, "manual": True})
+    body.setdefault("salidas", {"chat": True, "github": True, "vps": True, "huggingface": True})
+    body.setdefault("recursos", [])
+    body.setdefault("model", "claude-sonnet-4.5")
+    body.setdefault("provider", "litellm")
+    body.setdefault("priority", 1)
+    (AGENTS_DIR_V2 / f"{aid}.json").write_text(json.dumps(body, indent=2))
+    return {"ok": True, "agent": body}
+
+@app.get("/api/v2/agents/{aid}")
+def get_agent_v2(aid: str):
+    f = AGENTS_DIR_V2 / f"{aid}.json"
+    if not f.exists(): raise HTTPException(404)
+    return json.loads(f.read_text())
+
+@app.put("/api/v2/agents/{aid}")
+async def update_agent_v2(aid: str, request: Request):
+    body = await request.json()
+    body["id"] = aid
+    body["updated"] = datetime.utcnow().isoformat()
+    (AGENTS_DIR_V2 / f"{aid}.json").write_text(json.dumps(body, indent=2))
+    return {"ok": True, "agent": body}
+
+@app.delete("/api/v2/agents/{aid}")
+def delete_agent_v2(aid: str):
+    f = AGENTS_DIR_V2 / f"{aid}.json"
+    if not f.exists(): raise HTTPException(404)
+    f.unlink()
+    return {"ok": True, "deleted": aid}
