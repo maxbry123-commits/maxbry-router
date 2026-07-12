@@ -1,0 +1,15 @@
+{
+  "name": "consensus",
+  "version": "1.0.0",
+  "category": "intelligence",
+  "level": 1,
+  "author": "max@maxbry-router.dev",
+  "icon": "⚖",
+  "description": "Consulta N modelos y devuelve respuesta consensuada",
+  "tags": ["reasoning", "voting", "multi-model"],
+  "permissions": ["use_api", "use_memory"],
+  "inputs": [{"name":"prompt","type":"string","required":true}],
+  "outputs": [{"name":"consensus","type":"string"}],
+  "events": ["on_install", "on_run"],
+  "health_check": {"endpoint":"/api/skills/consensus/health","interval_s":60}
+}

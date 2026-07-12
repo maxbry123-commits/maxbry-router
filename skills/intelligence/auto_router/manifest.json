@@ -1,0 +1,7 @@
+{
+  "name": "auto_router",
+  "version": "1.0.0",
+  "category": "intelligence",
+  "level": 1,
+  "description": "Elige el destino óptimo según coste/latencia"
+}
