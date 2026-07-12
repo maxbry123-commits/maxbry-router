@@ -1,12 +1,6 @@
-// API Client — SIN MOCKS, sin localhost hardcoded
-// Detecta automáticamente si corre en sandbox o en Pages
+// API Client para v6.0 — IDE Router
 const isPages = typeof window !== "undefined" && window.location.host.endsWith(".pages.dev");
-
-// En Pages: backend en VPS (cuando haya tunnel). Por ahora fallback a API pública.
-// En dev (sandbox): apunta al backend en :8000 del VPS via proxy.
-const API_BASE = isPages
-  ? "https://api.26b2702b.maxbry-router-ui.pages.dev"  // Pages Functions proxy
-  : "http://127.0.0.1:8000";                            // dev local
+export const API_BASE = isPages ? "https://adoption-would-blowing-encoding.trycloudflare.com" : "http://127.0.0.1:8000";
 
 async function http<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${path}`;
@@ -16,205 +10,85 @@ async function http<T>(path: string, opts: RequestInit = {}): Promise<T> {
     ...(opts.headers as Record<string, string> || {})
   };
   const res = await fetch(url, { ...opts, headers });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
-  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text().catch(() => res.statusText)}`);
   return res.json() as Promise<T>;
 }
 
-// Export http as api for backward compatibility with old calls
-export const api = http;
-
-// WebSocket simple
-export class RouterWS {
-  ws: WebSocket | null = null;
-  connected = false;
-  listeners: Array<(msg: any) => void> = [];
-  constructor() {
-    if (typeof window !== "undefined") {
-      this.connect();
-    }
-  }
-  connect() {
-    try {
-      const proto = window.location.protocol === "https:" ? "wss" : "ws";
-      const host = isPages ? window.location.host.replace(".pages.dev", ".pages.dev") : "127.0.0.1:8000";
-      const url = isPages ? `${proto}://${host}/ws` : `ws://${host}/ws`;
-      this.ws = new WebSocket(url);
-      this.ws.onopen = () => { this.connected = true };
-      this.ws.onclose = () => { this.connected = false; setTimeout(() => this.connect(), 3000) };
-      this.ws.onmessage = (e) => {
-        try { this.listeners.forEach(l => l(JSON.parse(e.data))) } catch {}
-      };
-    } catch {}
-  }
-  on(fn: (msg: any) => void) { this.listeners.push(fn); }
-  off(fn: (msg: any) => void) { this.listeners = this.listeners.filter(l => l !== fn) }
-}
-
-// ====== TIPOS ======
-export interface Provider {
+export interface Resource {
   id: string;
   name: string;
-  endpoint: string;
-  priority: number;
-  fallback: string;
-  models: string[];
-  state: "online" | "offline" | "error";
-  health_check: string;
-  retry: number;
-  timeout_s: number;
-  cost_1k: number;
-}
-
-export interface HealthMonitor {
-  last_check: string;
-  services: Record<string, { status: string; latency_ms: number }>;
-}
-
-export interface Watchdog {
-  started: string;
-  heartbeats: Array<{ ts: string; ok: boolean; memory_mb: number }>;
-  auto_recoveries: number;
-  status: string;
-  heartbeat_count: number;
-  uptime_s: number;
-}
-
-export interface CircuitBreaker {
-  name: string;
-  state: "closed" | "open" | "half-open";
-  failures: number;
-  last_failure: number;
-}
-
-export interface BridgeItem {
-  name: string;
-  path: string;
-  version: string;
-  state: string;
-  size_bytes: number;
-  sha: string;
-  last_modified: string;
-  source: string;
-  meta: { download_url: string };
-}
-
-export interface BridgeRegistry {
-  skills: BridgeItem[];
-  docs: BridgeItem[];
-  memory: BridgeItem[];
-  dsl: BridgeItem[];
-  contracts: BridgeItem[];
-}
-
-export interface Schema {
-  type: string;
-  fields: Array<{ name: string; kind: string; required: boolean }>;
-}
-
-export interface Workflow {
-  id: string;
-  nodes: Array<{ id: string; type: string; label: string; x: number; y: number }>;
-  edges: Array<{ from: string; to: string }>;
-  ts: string;
-}
-
-export interface Dashboard {
-  router: string;
-  version: string;
-  nodos_red: number;
-  rutas: number;
-  nodos_interface: number;
-  fichas: number;
-  sondeos: Record<string, string>;
+  kind: string;
+  [k: string]: any;
+  state?: string;
+  created?: string;
+  updated?: string;
 }
 
 export interface Agent {
   id: string;
   name: string;
   role: string;
-  status: string;
   provider: string;
-  created: string;
+  model: string;
+  priority: number;
+  state: string;
+  entradas: Record<string, boolean>;
+  salidas: Record<string, boolean>;
+  recursos: string[];
+  created?: string;
+  updated?: string;
+  [k: string]: any;
 }
 
-export interface Fichas {
-  fichas: any[];
-  count: number;
+export interface CatalogItem {
+  id: string;
+  label: string;
+  icon: string;
 }
 
-export interface MemoryItem {
-  path: string;
-  content: string;
-  exists: boolean;
+export interface RouterConfig {
+  entradas: string[];
+  salidas: string[];
+  prioridades: Record<string, number>;
+  orden: string[];
+  fallback: Record<string, string>;
+  consensus: { enabled: boolean; modelos: string[]; voting: string };
+  recovery: { enabled: boolean; max_retries: number; backoff_s: number; circuit_breaker_threshold: number };
 }
 
-// ====== API CALLS ======
 export const client = {
-  // auth
-  health: () => http<{ status: string; nodos: number; rutas: number; fichas: number }>("/health"),
-  unlock: (creds: { user: string; password: string }) =>
-    http<{ ok: boolean; token: string; rol: string }>("/api/unlock", { method: "POST", body: JSON.stringify(creds) }),
+  // Resources
+  resources: () => http<{ resources: Resource[]; count: number }>("/api/resources"),
+  resource: (id: string) => http<Resource>(`/api/resources/${id}`),
+  resourceKinds: () => http<{ kinds: Record<string, any>; count: number }>("/api/resources/kinds"),
+  createResource: (r: Partial<Resource>) => http<{ ok: boolean; resource: Resource }>("/api/resources", { method: "POST", body: JSON.stringify(r) }),
+  updateResource: (id: string, r: Partial<Resource>) => http<{ ok: boolean; resource: Resource }>(`/api/resources/${id}`, { method: "PUT", body: JSON.stringify(r) }),
+  deleteResource: (id: string) => http<{ ok: boolean; deleted: string }>(`/api/resources/${id}`, { method: "DELETE" }),
 
-  // router
-  dashboard: () => http<Dashboard>("/api/dashboard"),
-  red: () => http<{ nodos: any[]; count: number }>("/api/red"),
-  fichas: () => http<Fichas>("/api/fichas"),
+  // Agents
+  agents: () => http<{ agents: Agent[]; count: number }>("/api/v2/agents"),
+  agent: (id: string) => http<Agent>(`/api/v2/agents/${id}`),
+  createAgent: (a: Partial<Agent>) => http<{ ok: boolean; agent: Agent }>("/api/v2/agents", { method: "POST", body: JSON.stringify(a) }),
+  updateAgent: (id: string, a: Partial<Agent>) => http<{ ok: boolean; agent: Agent }>(`/api/v2/agents/${id}`, { method: "PUT", body: JSON.stringify(a) }),
+  deleteAgent: (id: string) => http<{ ok: boolean; deleted: string }>(`/api/v2/agents/${id}`, { method: "DELETE" }),
 
-  // bridge
-  bridgeHealth: () => http<any>("/api/bridge/health"),
-  bridgeRegistry: () => http<BridgeRegistry>("/api/bridge/registry"),
-  bridgeSkills: () => http<{ skills: BridgeItem[] }>("/api/bridge/skills"),
-  bridgeDocs: () => http<{ docs: BridgeItem[] }>("/api/bridge/docs"),
-  bridgeSync: () => http<any>("/api/bridge/sync", { method: "POST" }),
+  // Catalogs
+  agentInputs: () => http<{ inputs: CatalogItem[]; count: number }>("/api/agents-catalog/inputs"),
+  agentOutputs: () => http<{ outputs: CatalogItem[]; count: number }>("/api/agents-catalog/outputs"),
 
-  // memory
-  memoryRead: (path: string) => http<MemoryItem>(`/api/memory/leer?path=${encodeURIComponent(path)}`),
-  memorySave: (path: string, content: string) =>
-    http<{ ok: boolean; path: string; bytes: number }>("/api/memory/guardar", { method: "POST", body: JSON.stringify({ path, content }) }),
+  // Router config
+  routerConfig: () => http<RouterConfig>("/api/router/config"),
+  routerChat: (messages: any[], model?: string) => http<any>("/api/router/chat", { method: "POST", body: JSON.stringify({ messages, model }) }),
+  routerChatTest: () => http<any>("/api/router/chat/test"),
+  agentFromGithub: (url: string) => http<any>("/api/agents/from-github", { method: "POST", body: JSON.stringify({ url }) }),
+  saveRouterConfig: (c: RouterConfig) => http<{ ok: boolean; config: RouterConfig }>("/api/router/config", { method: "PUT", body: JSON.stringify(c) }),
 
-  // providers
-  providers: () => http<{ providers: Provider[]; count: number }>("/api/providers"),
-  enableProvider: (id: string) => http<{ ok: boolean; provider: Provider }>(`/api/providers/${id}/enable`, { method: "POST" }),
-  disableProvider: (id: string) => http<{ ok: boolean; provider: Provider }>(`/api/providers/${id}/disable`, { method: "POST" }),
-
-  // health monitor
-  healthMonitor: () => http<HealthMonitor>("/api/health/monitor"),
-
-  // watchdog
-  watchdog: () => http<Watchdog>("/api/watchdog"),
-  recoverySimulate: () => http<{ ok: boolean; auto_recoveries: number; ts: string }>("/api/recovery/simulate", { method: "POST" }),
-
-  // circuit breaker
-  circuitBreakers: () => http<{ breakers: Record<string, CircuitBreaker> }>("/api/circuit-breakers"),
-  circuitReset: (name: string) => http<{ ok: boolean; breaker: CircuitBreaker }>(`/api/circuit-breakers/${name}/reset`, { method: "POST" }),
-
-  // marketplace
-  marketplace: () => http<{ skills: BridgeItem[]; count: number }>("/api/marketplace"),
-  marketplaceInstall: (name: string) => http<{ ok: boolean; installed: string; from: string; path: string }>("/api/marketplace/install", { method: "POST", body: JSON.stringify({ name }) }),
-
-  // builder
-  builderAgent: (data: Partial<Agent>) => http<{ ok: boolean; agent_id: string; created: boolean; type: string }>("/api/builder/agent", { method: "POST", body: JSON.stringify(data) }),
-  builderSkill: (data: any) => http<{ ok: boolean; skill_id: string; created: boolean; type: string }>("/api/builder/skill", { method: "POST", body: JSON.stringify(data) }),
-  builderWorkflow: (data: any) => http<{ ok: boolean; workflow_id: string; created: boolean; type: string }>("/api/builder/workflow", { method: "POST", body: JSON.stringify(data) }),
-
-  // schema builder
-  schemas: () => http<{ schemas: string[] }>("/api/builder/schemas"),
-  saveSchema: (type: string, body: Schema) => http<{ ok: boolean; type: string; fields: number }>(`/api/builder/schemas/${type}`, { method: "POST", body: JSON.stringify(body) }),
-
-  // custom panels
-  customPanels: () => http<{ panels: Array<{ name: string; icon: string; category: string; based_on: string; enabled: boolean }>; count: number }>("/api/custom-panels"),
-
-  // AI
-  aiDiagnose: (text: string) => http<{ ok: boolean; result: any }>("/api/ai/diagnose", { method: "POST", body: JSON.stringify({ text }) }),
-  aiOptimize: (text: string) => http<{ ok: boolean; result: any }>("/api/ai/optimize", { method: "POST", body: JSON.stringify({ text }) }),
-
-  // agent run
-  agentRun: (id: string, input: string) => http<{ ok: boolean; result: any }>("/api/agent/run", { method: "POST", body: JSON.stringify({ id, input }) }),
-
-  // workflows (filesystem persistence)
-  workflows: () => http<{ workflows: Workflow[]; count: number }>("/api/workflows"),
-  saveWorkflow: (wf: Workflow) => http<{ ok: boolean; id: string }>("/api/workflows", { method: "POST", body: JSON.stringify(wf) }),
+  // Live
+  health: () => http<any>("/health"),
+  providers: () => http<{ providers: any[]; count: number }>("/api/providers"),
+  watchdog: () => http<any>("/api/watchdog"),
+  circuitBreakers: () => http<{ breakers: any }>("/api/circuit-breakers"),
 };
+
+// Alias para compatibilidad
+export const api = client;
