@@ -829,3 +829,143 @@ def list_custom_panels():
             (CUSTOM_PANELS_DIR / p["name"]).mkdir(exist_ok=True)
             (CUSTOM_PANELS_DIR / p["name"] / "manifest.json").write_text(json.dumps(p, indent=2))
     return {"panels": panels, "count": len(panels)}
+
+
+# =====================================================================
+# AGENTS (FASE 4 - Builder Studio)
+# =====================================================================
+AGENTS_DIR = Path("/opt/nct/agents")
+AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+
+@app.get("/api/agents")
+def list_agents():
+    agents = []
+    if AGENTS_DIR.exists():
+        for f in AGENTS_DIR.glob("*.json"):
+            try:
+                agents.append(json.loads(f.read_text()))
+            except: pass
+    return {"agents": agents, "count": len(agents)}
+
+@app.post("/api/agents")
+async def create_agent(request: Request):
+    body = await request.json()
+    aid = body.get("id", f"agent-{int(_time.time())}")
+    body["id"] = aid
+    body["created"] = datetime.utcnow().isoformat()
+    body["status"] = "active"
+    (AGENTS_DIR / f"{aid}.json").write_text(json.dumps(body, indent=2))
+    return {"ok": True, "agent": body}
+
+@app.get("/api/agents/{aid}")
+def get_agent(aid: str):
+    f = AGENTS_DIR / f"{aid}.json"
+    if not f.exists(): raise HTTPException(404)
+    return json.loads(f.read_text())
+
+@app.delete("/api/agents/{aid}")
+def delete_agent(aid: str):
+    f = AGENTS_DIR / f"{aid}.json"
+    if f.exists():
+        f.unlink()
+        return {"ok": True, "deleted": aid}
+    raise HTTPException(404)
+
+
+# =====================================================================
+# WORKFLOWS (persistidos en filesystem)
+# =====================================================================
+WORKFLOWS_DIR = Path("/opt/nct/workflows")
+WORKFLOWS_DIR.mkdir(parents=True, exist_ok=True)
+
+@app.get("/api/workflows")
+def list_workflows():
+    wfs = []
+    if WORKFLOWS_DIR.exists():
+        for f in WORKFLOWS_DIR.glob("*.json"):
+            try:
+                wfs.append(json.loads(f.read_text()))
+            except: pass
+    return {"workflows": wfs, "count": len(wfs)}
+
+@app.post("/api/workflows")
+async def save_workflow(request: Request):
+    body = await request.json()
+    wid = body.get("id", f"wf-{int(_time.time())}")
+    body["id"] = wid
+    body["ts"] = datetime.utcnow().isoformat()
+    (WORKFLOWS_DIR / f"{wid}.json").write_text(json.dumps(body, indent=2))
+    return {"ok": True, "id": wid, "ts": body["ts"]}
+
+@app.get("/api/workflows/{wid}")
+def get_workflow(wid: str):
+    f = WORKFLOWS_DIR / f"{wid}.json"
+    if not f.exists(): raise HTTPException(404)
+    return json.loads(f.read_text())
+
+@app.delete("/api/workflows/{wid}")
+def delete_workflow(wid: str):
+    f = WORKFLOWS_DIR / f"{wid}.json"
+    if f.exists():
+        f.unlink()
+        return {"ok": True, "deleted": wid}
+    raise HTTPException(404)
+
+
+# =====================================================================
+# SCHEMA BUILDER - delete (CRUD completo)
+# =====================================================================
+SCHEMAS_FILE = Path("/opt/nct/schemas.json")
+
+@app.get("/api/schemas")
+def list_all_schemas():
+    if SCHEMAS_FILE.exists():
+        return json.loads(SCHEMAS_FILE.read_text())
+    return {"schemas": {}}
+
+@app.delete("/api/schemas/{type}")
+def delete_schema(type: str):
+    if not SCHEMAS_FILE.exists(): raise HTTPException(404)
+    data = json.loads(SCHEMAS_FILE.read_text())
+    if type not in data.get("schemas", {}): raise HTTPException(404)
+    del data["schemas"][type]
+    SCHEMAS_FILE.write_text(json.dumps(data, indent=2))
+    return {"ok": True, "deleted": type}
+
+@app.put("/api/schemas/{type}")
+async def update_schema(type: str, request: Request):
+    body = await request.json()
+    if SCHEMAS_FILE.exists():
+        data = json.loads(SCHEMAS_FILE.read_text())
+    else:
+        data = {"schemas": {}}
+    data["schemas"][type] = body
+    SCHEMAS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SCHEMAS_FILE.write_text(json.dumps(data, indent=2))
+    return {"ok": True, "type": type, "fields": len(body.get("fields", []))}
+
+
+# =====================================================================
+# AGENT RUN (FASE 11)
+# =====================================================================
+@app.post("/api/agent/run")
+async def agent_run(request: Request):
+    body = await request.json()
+    aid = body.get("id", "")
+    inp = body.get("input", "")
+    # Cargar agente si existe
+    agent_data = None
+    f = AGENTS_DIR / f"{aid}.json"
+    if f.exists():
+        agent_data = json.loads(f.read_text())
+    return {
+        "ok": True,
+        "result": {
+            "agent_id": aid,
+            "input": inp[:200],
+            "provider": (agent_data or {}).get("provider", "litellm"),
+            "output": f"Agente {aid} recibio input. (En producción, aquí se llamaría al provider).",
+            "tokens_in": len(inp.split()),
+            "ts": datetime.utcnow().isoformat()
+        }
+    }
