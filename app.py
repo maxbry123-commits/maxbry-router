@@ -1,4 +1,5 @@
 """MAXBRY Router v3.0 · Router + Router Interface (16 nodos FSM) + Fichas
+import requests
 Implementa TODO el doc:
 - Router Universal (enchufe_gate + conectores + red_universal)
 - Router Interface (16 nodos FSM + 5 etapas)
