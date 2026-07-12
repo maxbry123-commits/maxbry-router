@@ -1347,20 +1347,34 @@ async def agent_from_github(request: Request):
                 readme_text = p.read_text(errors='ignore')[:2000]
                 break
         
-        # 4. Extraer nombre y descripción del README
-        name = repo
+        # 4. Extraer nombre y descripción del README (regex estricto)
+        import re as _re2
+        # Fallback: nombre del repo capitalizado
+        name = repo.replace("-", " ").replace("_", " ").title()
         description = ""
         if readme_text:
-            lines = readme_text.split('\n')
-            for ln in lines:
-                ln = ln.strip()
-                if ln and not ln.startswith('#') and not ln.startswith('!') and not ln.startswith('['):
-                    name = ln[:80]
-                    break
-            for ln in lines:
-                ln = ln.strip()
-                if ln and not ln.startswith('#') and not ln.startswith('!') and not ln.startswith('[') and len(ln) > 20:
-                    description = ln[:300]
+            # Buscar el primer H1 (# Title) que no sea HTML
+            m = _re2.search(r'^#\s+(.+?)$', readme_text, _re2.MULTILINE)
+            if m:
+                title = _re2.sub(r'!\[.*?\]\(.*?\)', '', m.group(1)).strip()
+                if title and not title.startswith('<'):
+                    name = title[:80]
+            if name.startswith('<') or not name:
+                name = repo.replace("-", " ").replace("_", " ").title()
+            # Buscar el primer párrafo
+            for para in readme_text.split('\n\n'):
+                para = para.strip()
+                if not para: continue
+                if para.startswith('#'): continue
+                if para.startswith('!') or para.startswith('['): continue
+                if para.startswith('<'): continue
+                if 'http' in para and len(para) < 50: continue
+                clean = _re2.sub(r'!\[.*?\]\(.*?\)', '', para)
+                clean = _re2.sub(r'\[(.+?)\]\(.+?\)', r'\1', clean)
+                clean = _re2.sub(r'<[^>]+>', '', clean)
+                clean = clean.strip()
+                if len(clean) > 30:
+                    description = clean[:300]
                     break
         
         # 5. Detectar provider/model por heurística
