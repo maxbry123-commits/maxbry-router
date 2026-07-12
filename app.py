@@ -1189,3 +1189,213 @@ def delete_agent_v2(aid: str):
     if not f.exists(): raise HTTPException(404)
     f.unlink()
     return {"ok": True, "deleted": aid}
+
+
+# =====================================================================
+# ROUTER CHAT — con MiniMax M3 (NVIDIA NIM)
+# =====================================================================
+NVIDIA_KEYS = [
+    os.getenv("NVIDIA_NIM_KEY_BRISEIDA_DIGI", "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"),
+    os.getenv("NVIDIA_NIM_KEY_BRISEIDA_MOVISTAR", "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"),
+    os.getenv("NVIDIA_NIM_KEY_MAXBRY_WOW", "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"),
+]
+NVIDIA_BASE = "https://integrate.api.nvidia.com/v1"
+NVIDIA_MODEL = "minimax-m2.7"  # MiniMax M3 family
+
+import itertools
+_nvidia_key_cycle = itertools.cycle(NVIDIA_KEYS)
+
+def nvidia_chat(messages: list, model: str = NVIDIA_MODEL, max_tokens: int = 1024, temperature: float = 0.7) -> dict:
+    """Llama a NVIDIA NIM con rotación de keys."""
+    last_err = None
+    for attempt in range(len(NVIDIA_KEYS)):
+        key = next(_nvidia_key_cycle)
+        try:
+            r = requests.post(
+                f"{NVIDIA_BASE}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "stream": False
+                },
+                timeout=60
+            )
+            if r.status_code == 200:
+                return r.json()
+            elif r.status_code == 401 or r.status_code == 429:
+                last_err = f"key-{attempt} {r.status_code}: {r.text[:100]}"
+                continue
+            else:
+                return {"error": f"NVIDIA {r.status_code}: {r.text[:500]}"}
+        except Exception as e:
+            last_err = f"key-{attempt} exception: {str(e)[:100]}"
+            continue
+    return {"error": f"all keys failed: {last_err}"}
+
+@app.post("/api/router/chat")
+async def router_chat(request: Request):
+    """Endpoint de chat del Router con MiniMax M3."""
+    body = await request.json()
+    messages = body.get("messages", [])
+    model = body.get("model", NVIDIA_MODEL)
+    if not messages:
+        return {"error": "no messages"}
+    # Llamamos a NVIDIA NIM
+    result = nvidia_chat(messages, model=model)
+    if "error" in result:
+        return {"ok": False, "error": result["error"]}
+    choice = result.get("choices", [{}])[0]
+    msg = choice.get("message", {})
+    usage = result.get("usage", {})
+    return {
+        "ok": True,
+        "model": result.get("model", model),
+        "message": {"role": msg.get("role", "assistant"), "content": msg.get("content", "")},
+        "usage": {"prompt_tokens": usage.get("prompt_tokens", 0), "completion_tokens": usage.get("completion_tokens", 0), "total_tokens": usage.get("total_tokens", 0)},
+        "ts": datetime.utcnow().isoformat()
+    }
+
+@app.get("/api/router/chat/test")
+def router_chat_test():
+    """Test rápido con un prompt simple."""
+    result = nvidia_chat([
+        {"role": "system", "content": "Eres un asistente del Router MAXBRY. Responde en español, breve."},
+        {"role": "user", "content": "Di OK si recibes este mensaje."}
+    ])
+    if "error" in result:
+        return {"ok": False, "error": result["error"]}
+    return {
+        "ok": True,
+        "model": result.get("model"),
+        "content": result.get("choices", [{}])[0].get("message", {}).get("content", ""),
+        "usage": result.get("usage", {})
+    }
+
+
+# =====================================================================
+# GITHUB REPO → AGENTE
+# Descarga un repo, valida la fuente, y crea un agente desde su README
+# =====================================================================
+import re as _re
+GITHUB_REPO_RE = _re.compile(r'^https?://github\.com/([\w.-]+)/([\w.-]+?)(?:\.git)?/?$')
+
+@app.post("/api/agents/from-github")
+async def agent_from_github(request: Request):
+    """
+    Body: { "url": "https://github.com/All-Hands-AI/OpenHands" }
+    1. Descarga el repo (git clone o zip download) en /opt/nct/agents-src/<id>/
+    2. Lee el README.md para extraer nombre, descripción
+    3. Detecta el "kind" (claude-code, mimo-code, openhands, etc.) por el repo name
+    4. Crea el agente en /opt/nct/agents/<id>.json
+    """
+    body = await request.json()
+    url = body.get("url", "").strip()
+    if not url:
+        return {"ok": False, "error": "url required"}
+    
+    m = GITHUB_REPO_RE.match(url)
+    if not m:
+        return {"ok": False, "error": f"invalid GitHub URL: {url}"}
+    
+    org, repo = m.group(1), m.group(2)
+    agent_id = repo.lower().replace(".", "-").replace("_", "-")
+    
+    # 1. Validar fuente (no sandbox — solo GitHub)
+    if "github.com" not in url:
+        return {"ok": False, "error": "only GitHub URLs allowed"}
+    
+    # 2. Descargar (zipball desde GitHub, sin auth para repos públicos)
+    import zipfile, io, shutil
+    src_dir = Path("/opt/nct/agents-src") / agent_id
+    
+    try:
+        # Limpio versión anterior
+        if src_dir.exists():
+            shutil.rmtree(src_dir)
+        src_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Download zipball
+        zip_url = f"https://api.github.com/repos/{org}/{repo}/zipball/main"
+        r = requests.get(zip_url, timeout=60, allow_redirects=True)
+        if r.status_code != 200:
+            # Intenta master
+            zip_url = f"https://api.github.com/repos/{org}/{repo}/zipball/master"
+            r = requests.get(zip_url, timeout=60, allow_redirects=True)
+        if r.status_code != 200:
+            return {"ok": False, "error": f"GitHub returned {r.status_code}"}
+        
+        # Extraer zip
+        with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
+            zf.extractall(src_dir)
+        # GitHub zipball envuelve en un subdir tipo org-repo-sha1
+        subdirs = [d for d in src_dir.iterdir() if d.is_dir()]
+        if subdirs:
+            actual_src = subdirs[0]
+        else:
+            actual_src = src_dir
+        
+        # 3. Leer README
+        readme_text = ""
+        for name in ["README.md", "readme.md", "README.MD", "Readme.md"]:
+            p = actual_src / name
+            if p.exists():
+                readme_text = p.read_text(errors='ignore')[:2000]
+                break
+        
+        # 4. Extraer nombre y descripción del README
+        name = repo
+        description = ""
+        if readme_text:
+            lines = readme_text.split('\n')
+            for ln in lines:
+                ln = ln.strip()
+                if ln and not ln.startswith('#') and not ln.startswith('!') and not ln.startswith('['):
+                    name = ln[:80]
+                    break
+            for ln in lines:
+                ln = ln.strip()
+                if ln and not ln.startswith('#') and not ln.startswith('!') and not ln.startswith('[') and len(ln) > 20:
+                    description = ln[:300]
+                    break
+        
+        # 5. Detectar provider/model por heurística
+        provider = "litellm"
+        model = NVIDIA_MODEL  # default
+        repo_lower = repo.lower()
+        if "claude" in repo_lower:
+            model = "claude-sonnet-4.5"
+        elif "mimo" in repo_lower or "minimax" in repo_lower:
+            model = "minimax-m2.7"
+        elif "openhands" in repo_lower or "open-hands" in repo_lower:
+            model = "claude-sonnet-4.5"
+        elif "openclaw" in repo_lower:
+            model = "claude-sonnet-4.5"
+        
+        # 6. Crear el agente
+        agent = {
+            "id": agent_id,
+            "name": name,
+            "description": description,
+            "role": "executor",
+            "provider": provider,
+            "model": model,
+            "priority": 99,
+            "state": "active",
+            "source": "github",
+            "github_url": url,
+            "github_org": org,
+            "github_repo": repo,
+            "source_path": str(actual_src),
+            "entradas": {"chat": True, "router": True, "agente": True, "api": True, "mcp": True, "webhook": True, "github": True, "manual": True, "orquestador": True, "scheduler": False, "watchdog": False, "recovery": False},
+            "salidas": {"chat": True, "github": True, "vps": True, "huggingface": True, "railway": False, "cloudflare": False, "telegram": False, "gmail": False, "webhook": True, "mcp": True, "api": True, "manual": True},
+            "recursos": ["github-maxbry"],
+            "created": datetime.utcnow().isoformat(),
+            "updated": datetime.utcnow().isoformat()
+        }
+        (AGENTS_DIR_V2 / f"{agent_id}.json").write_text(json.dumps(agent, indent=2))
+        return {"ok": True, "agent": agent, "source": str(actual_src), "readme_chars": len(readme_text)}
+    except Exception as e:
+        return {"ok": False, "error": f"download failed: {str(e)[:300]}"}
