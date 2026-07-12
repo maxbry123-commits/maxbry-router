@@ -1376,6 +1376,15 @@ async def agent_from_github(request: Request):
                 if len(clean) > 30:
                     description = clean[:300]
                     break
+        # Fallback: si no hay description, usar GitHub API
+        if not description:
+            try:
+                r = requests.get(f"https://api.github.com/repos/{org}/{repo}", timeout=10)
+                if r.status_code == 200:
+                    description = r.json().get("description", "") or ""
+            except: pass
+        if not description:
+            description = f"Agente descargado de https://github.com/{org}/{repo}"
         
         # 5. Detectar provider/model por heurística
         provider = "litellm"
