@@ -147,13 +147,20 @@ class RepositoryScanner:
                 logger.warning(f"bridge: error fetching {path}: {e}")
                 return []
 
+        VALID_FILES = ("manifest.json", "README.md", "index.md", "skill.md", "module.md", "doc.md", "contract.md", "workflow.md")
+        VALID_EXTS = (".md", ".yaml", ".yml", ".dsl", ".json")
+
+        def is_valid(name: str) -> bool:
+            return name in VALID_FILES or name.endswith(VALID_EXTS)
+
         for cat in CATEGORIES:
             items = fetch(cat)
             for item in items:
                 if item.get("type") == "dir":
+                    # Escaneo recursivo (1 nivel)
                     sub = fetch(f"{cat}/{item['name']}")
                     for s in sub:
-                        if s.get("type") == "file" and s["name"] in ("manifest.json", "README.md", "*.yaml", "*.md"):
+                        if s.get("type") == "file" and is_valid(s.get("name", "")):
                             indices[cat].append(IndexEntry(
                                 name=item["name"],
                                 path=s["path"],
@@ -163,7 +170,21 @@ class RepositoryScanner:
                                 source="github",
                                 meta={"download_url": s.get("download_url", "")}
                             ))
-                elif item.get("type") == "file":
+                        elif s.get("type") == "dir":
+                            # Subdirectorios (ej: docs/memory/)
+                            sub2 = fetch(f"{cat}/{item['name']}/{s['name']}")
+                            for s2 in sub2:
+                                if s2.get("type") == "file" and is_valid(s2.get("name", "")):
+                                    indices[cat].append(IndexEntry(
+                                        name=s["name"],
+                                        path=s2["path"],
+                                        sha=s2.get("sha", ""),
+                                        size_bytes=s2.get("size", 0),
+                                        last_modified=datetime.utcnow().isoformat(),
+                                        source="github",
+                                        meta={"download_url": s2.get("download_url", "")}
+                                    ))
+                elif item.get("type") == "file" and is_valid(item.get("name", "")):
                     indices[cat].append(IndexEntry(
                         name=item["name"],
                         path=item["path"],
