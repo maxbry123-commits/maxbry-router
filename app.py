@@ -969,3 +969,25 @@ async def agent_run(request: Request):
             "ts": datetime.utcnow().isoformat()
         }
     }
+
+
+# =====================================================================
+# MEMORY - listar y eliminar
+# =====================================================================
+MEMORY_DIR = Path("/workspace/MAXBRY/memory")
+
+@app.get("/api/memory/listar")
+def list_memory():
+    items = []
+    if MEMORY_DIR.exists():
+        for p in MEMORY_DIR.rglob("*.md"):
+            if p.is_file():
+                items.append({"path": str(p.relative_to(MEMORY_DIR)), "size": p.stat().st_size})
+    return {"items": items, "count": len(items)}
+
+@app.delete("/api/memory/eliminar")
+def delete_memory(path: str):
+    f = MEMORY_DIR / path
+    if not f.exists(): raise HTTPException(404)
+    f.unlink()
+    return {"ok": True, "deleted": path}

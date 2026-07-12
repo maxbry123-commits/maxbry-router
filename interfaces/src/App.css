@@ -314,3 +314,67 @@ input, textarea, select { font-family: var(--mono); }
 
 /* Aplicar valor al campo activo */
 .mb5-prop-row.applied { background: rgba(16, 163, 127, 0.1); transition: background 1s; }
+
+/* ===== MÓDULOS PANEL (Provider, Health, Watchdog, etc.) ===== */
+.mb5-modules {
+  position: fixed;
+  right: 0;
+  top: 56px;
+  bottom: 24px;
+  width: 340px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  display: flex;
+  z-index: 60;
+  font-family: var(--mono);
+  transition: transform 0.2s;
+}
+.mb5-mod-tabs {
+  width: 36px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  overflow-y: auto;
+}
+.mb5-mod-tab {
+  background: transparent;
+  border: none;
+  color: var(--gray-2);
+  padding: 8px 4px;
+  font-size: 9px;
+  font-family: var(--mono);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  min-height: 80px;
+}
+.mb5-mod-tab:hover { color: var(--white); background: var(--panel-2); }
+.mb5-mod-tab.active { color: var(--accent); border-left-color: var(--accent); background: var(--panel-2); }
+.mb5-mod-body {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+.mb5-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--white);
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 2px;
+  outline: none;
+}
+.mb5-input:focus { border-color: var(--accent); }
+
+.mb5-pill { padding: 2px 6px; border-radius: 2px; font-size: 9px; font-family: var(--mono); text-transform: uppercase; }
+.mb5-pill.green { background: var(--green); color: #000; }
+.mb5-pill.red { background: var(--red); color: #000; }
+.mb5-pill.blue { background: var(--blue); color: #000; }
+.mb5-pill.purple { background: var(--purple); color: #000; }
+.mb5-pill.yellow { background: var(--yellow); color: #000; }
+.mb5-pill.accent { background: var(--accent); color: #000; }

@@ -1,7 +1,6 @@
 // API Client — SIN MOCKS, sin localhost hardcoded
 // Detecta automáticamente si corre en sandbox o en Pages
 const isPages = typeof window !== "undefined" && window.location.host.endsWith(".pages.dev");
-const isDev = import.meta.env.DEV;
 
 // En Pages: backend en VPS (cuando haya tunnel). Por ahora fallback a API pública.
 // En dev (sandbox): apunta al backend en :8000 del VPS via proxy.
@@ -22,6 +21,36 @@ async function http<T>(path: string, opts: RequestInit = {}): Promise<T> {
     throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
   }
   return res.json() as Promise<T>;
+}
+
+// Export http as api for backward compatibility with old calls
+export const api = http;
+
+// WebSocket simple
+export class RouterWS {
+  ws: WebSocket | null = null;
+  connected = false;
+  listeners: Array<(msg: any) => void> = [];
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.connect();
+    }
+  }
+  connect() {
+    try {
+      const proto = window.location.protocol === "https:" ? "wss" : "ws";
+      const host = isPages ? window.location.host.replace(".pages.dev", ".pages.dev") : "127.0.0.1:8000";
+      const url = isPages ? `${proto}://${host}/ws` : `ws://${host}/ws`;
+      this.ws = new WebSocket(url);
+      this.ws.onopen = () => { this.connected = true };
+      this.ws.onclose = () => { this.connected = false; setTimeout(() => this.connect(), 3000) };
+      this.ws.onmessage = (e) => {
+        try { this.listeners.forEach(l => l(JSON.parse(e.data))) } catch {}
+      };
+    } catch {}
+  }
+  on(fn: (msg: any) => void) { this.listeners.push(fn); }
+  off(fn: (msg: any) => void) { this.listeners = this.listeners.filter(l => l !== fn) }
 }
 
 // ====== TIPOS ======
@@ -123,7 +152,7 @@ export interface MemoryItem {
 }
 
 // ====== API CALLS ======
-export const api = {
+export const client = {
   // auth
   health: () => http<{ status: string; nodos: number; rutas: number; fichas: number }>("/health"),
   unlock: (creds: { user: string; password: string }) =>
